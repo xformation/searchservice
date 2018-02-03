@@ -47,7 +47,6 @@ public class SearchController {
 
 	/**
 	 * API to search for elastic query json string
-	 * @param cls
 	 * @param elsQuery
 	 * @param pageNo
 	 * @param pageSize
@@ -74,7 +73,7 @@ public class SearchController {
 	}
 
 	/**
-	 * API {@code /api/v1/search/all} for searching a query string in all
+	 * API {@code /search/query} for searching a query string in all
 	 * entities or in provided entities. with all fields or in provided 
 	 * fields. The result in form of entity class {@code List}
 	 * @param q query string which needs to be search in repository
