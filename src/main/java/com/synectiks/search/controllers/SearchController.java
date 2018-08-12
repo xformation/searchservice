@@ -46,6 +46,34 @@ public class SearchController {
 	private SearchESEventReceiver receiver;
 
 	/**
+	 * Api to create a new index in elastic if not index not exists.
+	 * Also add the index mappings for new entity. We can call it to
+	 * update then existing index mappings too using isUpdate field.
+	 * @param cls
+	 * @param mappings
+	 * @param isUpdate
+	 * @return
+	 */
+	@RequestMapping("/setIndexMapping")
+	public ResponseEntity<Object> putMapping(
+			@RequestParam(value = "cls") String cls,
+			@RequestParam(value = "mappings") String mappings,
+			@RequestParam(name = "isUpdate",
+					required = false) boolean isUpdate) {
+
+		boolean searchResults = false;
+		try {
+			// Search in specified fields with page numbers
+			searchResults  = searchManger.putMapping(cls, mappings, isUpdate);
+		} catch (Exception ex) {
+			logger.error(ex.getMessage(), ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(searchResults, HttpStatus.OK);
+	}
+
+	/**
 	 * API to search for elastic query json string
 	 * @param elsQuery
 	 * @param pageNo

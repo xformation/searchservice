@@ -55,6 +55,27 @@ public class SearchManager {
 	}
 
 	/**
+	 * Method to add an index with mappings
+	 * or update the existing index mapping.
+	 * @param cls Entity class
+	 * @param mappings string mapping json
+	 * @param isUpdate set true to update existing mapping.
+	 * @return true only if mapping updated successfully;
+	 */
+	public boolean putMapping(String cls, String mappings, boolean isUpdate) {
+		Class<?> clazz = IUtils.getClass(cls);
+		boolean created = false;
+		if (!searchTemplate.indexExists(clazz)) {
+			created = searchTemplate.createIndex(clazz);
+		}
+		// add mapping only it newly created index or we have to update it.
+		if (created || isUpdate) {
+			return searchTemplate.putMapping(clazz, mappings);
+		}
+		return false;
+	}
+
+	/**
 	 * Method to search for <b>q</b> string in the
 	 *  <b>cls</b> class's <b>fields</b>
 	 * @param q search string
