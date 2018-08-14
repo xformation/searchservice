@@ -61,6 +61,7 @@ public class SearchController {
 			@RequestParam(name = "isUpdate",
 					required = false) boolean isUpdate) {
 
+		logger.info(cls + ", " + mappings + ", " + isUpdate);
 		boolean searchResults = false;
 		try {
 			// Search in specified fields with page numbers
