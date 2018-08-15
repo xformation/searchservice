@@ -25,6 +25,19 @@ Once done you can run the application by executing
 
 ## Application api's documentation ##
 
+### /search/setIndexMapping
+
+Api to create a new index in elastic if not index not exists. Also add the index mappings for new entity. We can call it to update then existing index mappings too using isUpdate field.
+
+	Method: POST
+	Params:
+		cls	*			String 	fully qualified name of entity class
+		mappings*		String		json object string for mappings of document
+		isUpdate		Boolean	send true if you would like to update the existing index mappings.
+	Response:
+		true if new index and mapping get updated successfully in elasticsearch.
+
+
 ### /search/elsQuery ###
 
 Api to get the list of child nodes by absolute node path.
