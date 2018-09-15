@@ -25,6 +25,18 @@ Once done you can run the application by executing
 
 ## Application api's documentation ##
 
+### /search/getIndexMapping
+
+Api to create a new index in elastic if not index not exists. Also add the index mappings for new entity. We can call it to update then existing index mappings too using isUpdate field.
+
+	Method: POST
+	Params:
+		cls	*			String 	fully qualified name of entity class
+		@param fieldsOnly if true then you will get list of fieldnames
+	Response:
+		Entity class mappings or List of field names if fieldsOnly is true
+
+
 ### /search/setIndexMapping
 
 Api to create a new index in elastic if not index not exists. Also add the index mappings for new entity. We can call it to update then existing index mappings too using isUpdate field.

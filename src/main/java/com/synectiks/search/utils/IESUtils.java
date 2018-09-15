@@ -3,9 +3,13 @@
  */
 package com.synectiks.search.utils;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -358,5 +362,72 @@ public interface IESUtils {
 			event = new ESEvent(EventType.valueOf(eventType), obj);
 		}
 		return event;
+	}
+
+	/**
+	 * Method to iterate map object and extract keys including nested.
+	 * @param mappings
+	 * @return
+	 */
+	@SuppressWarnings("rawtypes")
+	static List<String> getFieldsFromMappings(Map map) {
+		List<String> list = new ArrayList<>();;
+		JSONObject json = new JSONObject(map);
+		findFields(null, json, list);
+		return list;
+	}
+
+	/**
+	 * Method to find fields into json object.
+	 * @param parent
+	 * @param json
+	 * @param list
+	 */
+	@SuppressWarnings("rawtypes")
+	static void findFields(String parent, JSONObject json, List<String> list) {
+		if (!IUtils.isNull(json) && json.length() > 0) {
+			Iterator it = json.keys();
+			while (it.hasNext()) {
+				try {
+					String key = it.next().toString();
+					JSONObject val = json.getJSONObject(key);
+					if ("properties".equals(key)) {
+						addFields(parent, val, list);
+					} else {
+						findFields(parent, val, list);
+						// ignore all others.
+					}
+				} catch (JSONException e) {
+					// ignore it
+				}
+			}
+		}
+	}
+
+	/**
+	 * Method to add fields into list
+	 * @param parent
+	 * @param val
+	 * @param list
+	 */
+	@SuppressWarnings("rawtypes")
+	static void addFields(String parent, JSONObject val, List<String> list) {
+		if (!IUtils.isNull(val)) {
+			Iterator fields = val.keys();
+			while (fields.hasNext()) {
+				try {
+					String field = fields.next().toString();
+					JSONObject fldVal = val.getJSONObject(field);
+					String key = (IUtils.isNullOrEmpty(parent) ?
+							field : (parent + "." + field));
+					list.add(key);
+					if (!IUtils.isNull(fldVal) && fldVal.has("properties")) {
+						addFields(key, fldVal.getJSONObject("properties"), list);
+					}
+				} catch (JSONException e) {
+					// ignore it
+				}
+			}
+		}
 	}
 }

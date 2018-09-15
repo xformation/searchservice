@@ -329,4 +329,15 @@ public class SearchManager {
 			return results;
 		}
 	}
+
+	/**
+	 * Method to find and return mappings for entity.
+	 * @param cls
+	 * @return
+	 */
+	@SuppressWarnings("rawtypes")
+	public Map gettMapping(String cls) {
+		Class<?> clazz = IUtils.getClass(cls);
+		return searchTemplate.getMapping(clazz);
+	}
 }

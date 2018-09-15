@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.synectiks.commons.constants.IConsts;
+import com.synectiks.commons.entities.SourceEntity;
 import com.synectiks.commons.entities.search.ESEvent;
 import com.synectiks.commons.interfaces.IApiController;
 import com.synectiks.commons.utils.IUtils;
@@ -72,6 +73,36 @@ public class SearchController {
 					HttpStatus.PRECONDITION_FAILED);
 		}
 		return new ResponseEntity<>(searchResults, HttpStatus.OK);
+	}
+
+	/**
+	 * API to return mappings for entity class.
+	 * @param cls
+	 * @param fieldsOnly if true then you will get list of fieldnames
+	 * @return
+	 */
+	@RequestMapping(path = "/getIndexMapping", method = RequestMethod.GET)
+	public ResponseEntity<Object> getMapping(
+			@RequestParam(value = "cls") String cls,
+			@RequestParam(name = "fieldsOnly",
+					required = false) boolean fieldsOnly) {
+		logger.info(cls + ", " + fieldsOnly);
+		Object res = null;
+		try {SourceEntity.class.getName();
+			// Search in specified fields with page numbers
+			@SuppressWarnings("rawtypes")
+			Map mappings  = searchManger.gettMapping(cls);
+			if (fieldsOnly) {
+				res = IESUtils.getFieldsFromMappings(mappings);
+			} else {
+				res = mappings;
+			}
+		} catch (Exception ex) {
+			logger.error(ex.getMessage(), ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(res, HttpStatus.OK);
 	}
 
 	/**
