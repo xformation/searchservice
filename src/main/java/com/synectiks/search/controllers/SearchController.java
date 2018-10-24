@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.synectiks.commons.constants.IConsts;
+import com.synectiks.commons.entities.PolicyRuleResult;
 import com.synectiks.commons.entities.SourceEntity;
 import com.synectiks.commons.entities.search.ESEvent;
 import com.synectiks.commons.interfaces.IApiController;
@@ -115,21 +116,25 @@ public class SearchController {
 	@RequestMapping("/elsQuery")
 	public ResponseEntity<Object> elsQuerySearch(
 			@RequestParam(name = "query") String elsQuery,
+			@RequestParam(name = "cls", required = false) String cls,
 			@RequestParam(name = "pageNo",
 					required = false, defaultValue = "0") int pageNo,
 			@RequestParam(name = "pageSize",
 					required = false, defaultValue = "0") int pageSize) {
-		SearchResponse searchResults = null;
+		Object res = null;
 		try {
+			logger.info("ElsQuery: " + elsQuery);
 			// Search in specified fields with page numbers
-			searchResults = searchManger.elsSearch(elsQuery, pageNo, pageSize);
+			SearchResponse searchResults = searchManger.elsSearch(
+					elsQuery, cls, pageNo, pageSize);
+			res = PolicyRuleResult.createFromSearchResponse(searchResults);
+			logger.info("Result: " + res);
 		} catch (Exception ex) {
 			logger.error(ex.getMessage(), ex);
 			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
 					HttpStatus.PRECONDITION_FAILED);
 		}
-		return new ResponseEntity<>(searchResults, HttpStatus.OK);
-		
+		return new ResponseEntity<>(res.toString(), HttpStatus.OK);
 	}
 
 	/**

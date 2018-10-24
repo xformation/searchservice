@@ -106,16 +106,21 @@ public class SearchManager {
 	/**
 	 * Method to execute elastic search query string in json format.
 	 * @param elsQuery
+	 * @param cls 
 	 * @param pageNo
 	 * @param pageSize
 	 * @return
 	 */
-	public SearchResponse elsSearch(String elsQuery, int pageNo,
+	public SearchResponse elsSearch(String elsQuery, String cls, int pageNo,
 			int pageSize) {
 		PageRequest pageReq = IESUtils.getPageRequest(pageNo, pageSize);
 		// Finally create a bool query builder with query type
 		WrapperQueryBuilder wqb = QueryBuilders.wrapperQuery(elsQuery);
-		NativeSearchQuery nsqb = new NativeSearchQueryBuilder().withQuery(wqb)
+		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
+				//.withTypes(cls)
+				.withIndices(searchTemplate.getPersistentEntityFor(
+						IUtils.getClass(cls)).getIndexName())
+				.withQuery(wqb)
 				.withPageable(pageReq).build();
 		return searchTemplate.query(nsqb, new ResultsExtractor<SearchResponse>() {
 			@Override
