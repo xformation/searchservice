@@ -8,7 +8,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.index.query.IdsQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.WrapperQueryBuilder;
 import org.elasticsearch.search.SearchHit;
@@ -52,6 +54,45 @@ public class SearchManager {
 
 	public ElasticsearchTemplate getESTemplate() {
 		return searchTemplate;
+	}
+
+	/**
+	 * Method to find and return mappings for entity.
+	 * @param cls
+	 * @return
+	 */
+	@SuppressWarnings("rawtypes")
+	public Map gettMapping(String cls) {
+		Class<?> clazz = IUtils.getClass(cls);
+		return searchTemplate.getMapping(clazz);
+	}
+
+	/**
+	 * Method to return documents by elastic-search document ids.
+	 * @param cls
+	 * @param ids
+	 * @return
+	 */
+	public List<String> getDocsById(String cls, List<String> ids) {
+		String type = searchTemplate.getPersistentEntityFor(
+				IUtils.getClass(cls)).getIndexType();
+		IdsQueryBuilder sQry = QueryBuilders.idsQuery(type).addIds(ids);
+		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
+				.withQuery(sQry)
+				.withIndices(searchTemplate.getPersistentEntityFor(
+						IUtils.getClass(cls)).getIndexName())
+				.build();
+		List<String> res = searchTemplate.query(nsqb, new SearchResultExtractor());
+		/*
+		SearchResponse sres = searchTemplate.getClient().prepareSearch(
+				searchTemplate.getPersistentEntityFor(
+						IUtils.getClass(cls)).getIndexName())
+				.setQuery(sQry)
+				.execute()
+				.actionGet();
+		List<String> res = new SearchResultExtractor().extract(sres);
+		 */
+		return res;
 	}
 
 	/**
@@ -257,8 +298,9 @@ public class SearchManager {
 			List<String> results = new ArrayList<>();
 			for (SearchHit hit : response.getHits()) {
 				if (hit != null) {
-					if (!IUtils.isNullOrEmpty(hit.sourceAsString())) {
-						results.add(hit.sourceAsString());
+					if (!IUtils.isNull(hit.getSource()) && !hit.getSource().isEmpty()) {
+						JSONObject json = new JSONObject(hit.getSource());
+						results.add(json.toString());
 					}
 				}
 			}
@@ -333,16 +375,5 @@ public class SearchManager {
 			logger.info("Res: " + results);
 			return results;
 		}
-	}
-
-	/**
-	 * Method to find and return mappings for entity.
-	 * @param cls
-	 * @return
-	 */
-	@SuppressWarnings("rawtypes")
-	public Map gettMapping(String cls) {
-		Class<?> clazz = IUtils.getClass(cls);
-		return searchTemplate.getMapping(clazz);
 	}
 }

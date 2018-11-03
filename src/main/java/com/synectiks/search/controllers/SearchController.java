@@ -48,6 +48,31 @@ public class SearchController {
 	private SearchESEventReceiver receiver;
 
 	/**
+	 * Api to get the elastic documents source json as list,
+	 * by elastic documents ids list.
+	 * @param cls
+	 * @param ids
+	 * @return
+	 */
+	@RequestMapping("/getDocs")
+	public ResponseEntity<Object> getDocsById(
+			@RequestParam(value = "cls") String cls,
+			@RequestParam List<String> ids) {
+
+		logger.info(cls + ", " + ids);
+		List<String> docs = null;
+		try {
+			// Search in specified fields with page numbers
+			docs  = searchManger.getDocsById(cls, ids);
+		} catch (Exception ex) {
+			logger.error(ex.getMessage(), ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(docs, HttpStatus.OK);
+	}
+
+	/**
 	 * Api to create a new index in elastic if not index not exists.
 	 * Also add the index mappings for new entity. We can call it to
 	 * update then existing index mappings too using isUpdate field.
