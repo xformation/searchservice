@@ -9,13 +9,15 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
-import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramBuilder;
+import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder ;
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
-import org.elasticsearch.search.aggregations.bucket.range.RangeBuilder;
-import org.elasticsearch.search.aggregations.bucket.terms.TermsBuilder;
-import org.elasticsearch.search.aggregations.metrics.max.MaxBuilder;
-import org.elasticsearch.search.aggregations.metrics.min.MinBuilder;
-import org.elasticsearch.search.aggregations.metrics.sum.SumBuilder;
+import org.elasticsearch.search.aggregations.bucket.range.RangeAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.terms.IncludeExclude;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.max.MaxAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.min.MinAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.sum.SumAggregationBuilder;
+import org.joda.time.DateTimeZone;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.synectiks.commons.constants.IConsts;
@@ -137,7 +139,7 @@ public class Aggregator implements Serializable {
 				aggBuilder = getRangesAggreBuilder();
 				break;
 			case "min":
-				MinBuilder min = AggregationBuilders.min(getAggreKey());
+				MinAggregationBuilder min = AggregationBuilders.min(getAggreKey());
 				min.field(fieldName);
 				if (!IUtils.isNullOrEmpty(format)) {
 					min.format(format);
@@ -145,7 +147,7 @@ public class Aggregator implements Serializable {
 				aggBuilder = min;
 				break;
 			case "max":
-				MaxBuilder max = AggregationBuilders.max(getAggreKey());
+				MaxAggregationBuilder max = AggregationBuilders.max(getAggreKey());
 				max.field(fieldName);
 				if (!IUtils.isNullOrEmpty(format)) {
 					max.format(format);
@@ -153,7 +155,7 @@ public class Aggregator implements Serializable {
 				aggBuilder = max;
 				break;
 			case "sum":
-				SumBuilder sum = AggregationBuilders.sum(getAggreKey());
+				SumAggregationBuilder sum = AggregationBuilders.sum(getAggreKey());
 				sum.field(fieldName);
 				if (!IUtils.isNullOrEmpty(format)) {
 					sum.format(format);
@@ -172,7 +174,7 @@ public class Aggregator implements Serializable {
 	 * @return
 	 */
 	private AbstractAggregationBuilder getRangesAggreBuilder() {
-		RangeBuilder builder = AggregationBuilders.range(getAggreKey());
+		RangeAggregationBuilder builder = AggregationBuilders.range(getAggreKey());
 		builder.field(fieldName);
 		if (!IUtils.isNullOrEmpty(ranges)) {
 			try {
@@ -207,9 +209,10 @@ public class Aggregator implements Serializable {
 	 * @return
 	 */
 	private AbstractAggregationBuilder getTermsAggreBuilder() {
-		TermsBuilder builder = AggregationBuilders.terms(getAggreKey());
+		TermsAggregationBuilder builder = AggregationBuilders.terms(getAggreKey());
 		builder.field(fieldName);
-		builder.include(IUtils.getArrayFromJsonString(values));
+		builder.includeExclude(new IncludeExclude(
+				IUtils.getArrayFromJsonString(values), null));
 		builder.size(0);
 		return builder;
 	}
@@ -221,13 +224,13 @@ public class Aggregator implements Serializable {
 	private AbstractAggregationBuilder getCountAggreBuilder() {
 		if (!IUtils.isNullOrEmpty(fieldType)
 				&& fieldType.equalsIgnoreCase("date")) {
-			DateHistogramBuilder builder = null;
+			DateHistogramAggregationBuilder builder = null;
 			if (!IUtils.isNullOrEmpty(fieldName) &&
 					!IUtils.isNullOrEmpty(interval)) {
 				builder = AggregationBuilders.dateHistogram(getAggreKey());
 				builder.field(fieldName);
-				builder.timeZone(locale);
-				builder.interval(new DateHistogramInterval(interval));
+				builder.timeZone(DateTimeZone.forID(locale));
+				builder.dateHistogramInterval(new DateHistogramInterval(interval));
 			}
 			return builder;
 		} else {

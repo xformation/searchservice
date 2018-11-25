@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.search.join.ScoreMode;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -102,7 +103,7 @@ public interface IESUtils {
 	 * @return {@code SearchQuery} instance
 	 */
 	static SearchQuery getNativeSearchQuery(BoolQueryBuilder qBuilder,
-			String indxName, Pageable pageReq, AbstractAggregationBuilder aggre) {
+			String indxName, Pageable pageReq, AbstractAggregationBuilder<?> aggre) {
 		NativeSearchQueryBuilder sQryBuilder = new NativeSearchQueryBuilder();
 		if (!IUtils.isNull(qBuilder)) {
 			sQryBuilder.withQuery(qBuilder);
@@ -147,7 +148,7 @@ public interface IESUtils {
 		if (pageNo > 0 || pageSize > 0) {
 			pageNo = (pageNo > 0 ? (pageNo - 1) : IConsts.DEF_PAGE);
 			pageSize = (pageSize > 1 ? pageSize : IConsts.PAGE_SIZE);
-			pgReq = new PageRequest(pageNo, pageSize);
+			pgReq = PageRequest.of(pageNo, pageSize);
 		}
 		return pgReq;
 	}
@@ -317,7 +318,7 @@ public interface IESUtils {
 				key.indexOf(".") != -1) {
 			String path = key.substring(0, key.lastIndexOf("."));
 			builder = QueryBuilders.nestedQuery(
-					path, getTermQueryBuilder(key, val, qryType));
+					path, getTermQueryBuilder(key, val, qryType), ScoreMode.None);
 		}
 		return builder;
 	}

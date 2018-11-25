@@ -28,6 +28,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ResultsExtractor;
+import org.springframework.data.elasticsearch.core.ScrolledPage;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
@@ -76,7 +77,8 @@ public class SearchManager {
 	public List<String> getDocsById(String cls, List<String> ids) {
 		String type = searchTemplate.getPersistentEntityFor(
 				IUtils.getClass(cls)).getIndexType();
-		IdsQueryBuilder sQry = QueryBuilders.idsQuery(type).addIds(ids);
+		IdsQueryBuilder sQry = QueryBuilders.idsQuery(type)
+				.addIds(IUtils.isNull(ids) ? null : ids.toArray(new String[ids.size()]));
 		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
 				.withQuery(sQry)
 				.withIndices(searchTemplate.getPersistentEntityFor(
@@ -256,10 +258,11 @@ public class SearchManager {
 		List<Object> lst = null;
 		if (!IUtils.isNull(cls) && !IUtils.isNull(sQry)) {
 			List<Object> pages = new ArrayList<>();
-			String scrollId = searchTemplate.scan(
-					sQry, IConsts.ES_SCROLL_TIMEOUT, false);
+			Page<?> scroll = searchTemplate.startScroll(
+					IConsts.ES_SCROLL_TIMEOUT, sQry, cls);
+			String scrollId = ((ScrolledPage<?>) scroll).getScrollId();
 			while (true) {
-				Page<?> pg = searchTemplate.scroll(
+				Page<?> pg = searchTemplate.continueScroll(
 						scrollId, IConsts.ES_SCROLL_TIMEOUT, cls);
 				if (pg.hasContent()) {
 					pages.addAll(pg.getContent());
@@ -298,8 +301,8 @@ public class SearchManager {
 			List<String> results = new ArrayList<>();
 			for (SearchHit hit : response.getHits()) {
 				if (hit != null) {
-					if (!IUtils.isNull(hit.getSource()) && !hit.getSource().isEmpty()) {
-						JSONObject json = new JSONObject(hit.getSource());
+					if (!IUtils.isNullOrEmpty(hit.getSourceAsString())) {
+						JSONObject json = new JSONObject(hit.getSourceAsMap());
 						results.add(json.toString());
 					}
 				}
@@ -338,8 +341,7 @@ public class SearchManager {
 					Aggregation aggre = aggres.get(aggregator.getAggreKey());
 					results = new HashMap<>();
 					if (aggre instanceof InternalHistogram) {
-						@SuppressWarnings("unchecked")
-						InternalHistogram<Bucket> dtHist = (InternalHistogram<Bucket>) aggre;
+						InternalHistogram dtHist = (InternalHistogram) aggre;
 						List<Bucket> buckets = dtHist.getBuckets();
 						for (Bucket b : buckets) {
 							String key = b.getKeyAsString();
