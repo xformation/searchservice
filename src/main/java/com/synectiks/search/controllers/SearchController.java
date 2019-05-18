@@ -141,6 +141,7 @@ public class SearchController {
 	public ResponseEntity<Object> elsQuerySearch(
 			@RequestParam(name = "query") String elsQuery,
 			@RequestParam(name = "cls", required = false) String cls,
+			@RequestParam(name = "notOnlyIds", required = false) boolean notOnlyIds,
 			@RequestParam(name = "pageNo",
 					required = false, defaultValue = "1") int pageNo,
 			@RequestParam(name = "pageSize",
@@ -151,7 +152,11 @@ public class SearchController {
 			// Search in specified fields with page numbers
 			SearchResponse searchResults = searchManger.elsSearch(
 					elsQuery, cls, pageNo, pageSize);
-			res = IUtils.createFromSearchResponse(searchResults);
+			if (notOnlyIds) {
+				res = searchResults;
+			} else {
+				res = IUtils.createFromSearchResponse(searchResults);
+			}
 			logger.info("Result: " + res);
 		} catch (Exception ex) {
 			logger.error(ex.getMessage(), ex);
