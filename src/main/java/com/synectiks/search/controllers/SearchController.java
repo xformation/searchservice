@@ -142,9 +142,9 @@ public class SearchController {
 			@RequestParam(name = "query") String elsQuery,
 			@RequestParam(name = "cls", required = false) String cls,
 			@RequestParam(name = "pageNo",
-					required = false, defaultValue = "0") int pageNo,
+					required = false, defaultValue = "1") int pageNo,
 			@RequestParam(name = "pageSize",
-					required = false, defaultValue = "0") int pageSize) {
+					required = false, defaultValue = "10") int pageSize) {
 		Object res = null;
 		try {
 			logger.info("ElsQuery: " + elsQuery);
