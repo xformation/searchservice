@@ -158,6 +158,7 @@ public class SearchManager {
 			int pageSize) {
 		PageRequest pageReq = IESUtils.getPageRequest(pageNo, pageSize);
 		// Finally create a bool query builder with query type
+		elsQuery = IESUtils.getElsQuery(elsQuery);
 		WrapperQueryBuilder wqb = QueryBuilders.wrapperQuery(elsQuery);
 		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
 				//.withTypes(cls)

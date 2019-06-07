@@ -431,4 +431,21 @@ public interface IESUtils {
 			}
 		}
 	}
+
+	/**
+	 * Method to make sure that query format is as expected of els 5.5+
+	 * @param elsQuery
+	 * @return
+	 */
+	static String getElsQuery(String elsQuery) {
+		String res = elsQuery;
+		JSONObject json = IUtils.getJSONObject(elsQuery);
+		if (!IUtils.isNull(json)) {
+			if (json.has(IConsts.PRM_QUERY)) {
+				res = json.optString(IConsts.PRM_QUERY).toString();
+				logger.info("Updated query: " + res);
+			}
+		}
+		return res;
+	}
 }
