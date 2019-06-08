@@ -139,12 +139,15 @@ public class SearchController {
 	 */
 	@RequestMapping("/elsQuery")
 	public ResponseEntity<Object> elsQuerySearch(
-			@RequestParam(name = "query") String elsQuery,
-			@RequestParam(name = "cls", required = false) String cls,
-			@RequestParam(name = "notOnlyIds", required = false) boolean notOnlyIds,
-			@RequestParam(name = "pageNo",
+			@RequestParam(name = IConsts.PRM_QUERY) String elsQuery,
+			@RequestParam(name = IConsts.PRM_CLASS, required = false) String cls,
+			@RequestParam(name = IConsts.PRM_NOT_ONLY_IDS,
+			required = false) boolean notOnlyIds,
+			@RequestParam(name = IConsts.PRM_RES_AS_PSR,
+			required = false) boolean asPSR,
+			@RequestParam(name = IConsts.PRM_PAGE,
 					required = false, defaultValue = "1") int pageNo,
-			@RequestParam(name = "pageSize",
+			@RequestParam(name = IConsts.PRM_PAGE_SIZE,
 					required = false, defaultValue = "10") int pageSize) {
 		Object res = null;
 		try {
@@ -155,7 +158,7 @@ public class SearchController {
 			if (notOnlyIds) {
 				res = searchResults;
 			} else {
-				res = IUtils.createFromSearchResponse(searchResults);
+				res = IUtils.createFromSearchResponse(searchResults, asPSR);
 			}
 			logger.info("Result: " + res);
 		} catch (Exception ex) {
