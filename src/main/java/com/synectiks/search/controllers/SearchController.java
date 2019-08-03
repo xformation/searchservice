@@ -53,7 +53,7 @@ public class SearchController {
 	 * @param ids
 	 * @return
 	 */
-	@RequestMapping("/getDocs")
+	@RequestMapping(path = "/getDocs", method = RequestMethod.GET)
 	public ResponseEntity<Object> getDocsById(
 			@RequestParam(value = "cls") String cls,
 			@RequestParam List<String> ids) {
@@ -137,7 +137,7 @@ public class SearchController {
 	 * @param pageSize
 	 * @return {@code SearchResponse} object
 	 */
-	@RequestMapping("/elsQuery")
+	@RequestMapping(path = "/elsQuery", method = RequestMethod.GET)
 	public ResponseEntity<Object> elsQuerySearch(
 			@RequestParam(name = IConsts.PRM_QUERY) String elsQuery,
 			@RequestParam(name = IConsts.PRM_CLASS, required = false) String cls,
@@ -180,7 +180,7 @@ public class SearchController {
 	 * @param pageSize size of page in result
 	 * @return {@code List} of entities in {@code ResponseEntity} body
 	 */
-	@RequestMapping("/query")
+	@RequestMapping(path = "/query", method = RequestMethod.GET)
 	public ResponseEntity<Object> searchString(@RequestParam(value = "q") String q,
 			@RequestParam(name = "cls", required = false) String cls,
 			@RequestParam(name = "fields", required = false) String fields,
@@ -240,7 +240,7 @@ public class SearchController {
 	 * @param pageSize size of page in result
 	 * @return {@code List} of entities in {@code ResponseEntity} body
 	 */
-	@RequestMapping(value = "/list", method = RequestMethod.POST)
+	@RequestMapping(path = "/list", method = RequestMethod.GET)
 	public ResponseEntity<Object> searchEntities(
 			@RequestParam(value = "cls") String cls,
 			@RequestParam(name = "filters",
@@ -269,7 +269,7 @@ public class SearchController {
 	 * <br/>
 	 * @return {@code Long} count of entities in {@code ResponseEntity} body
 	 */
-	@RequestMapping(value = "/count", method = RequestMethod.POST)
+	@RequestMapping(path = "/count", method = RequestMethod.GET)
 	public ResponseEntity<Object> countEntities(
 			@RequestParam(name = "cls") String cls,
 			@RequestParam(name = "filters",
@@ -311,7 +311,7 @@ public class SearchController {
 	 * @return {@code Map} of aggregation key, doc_count values
 	 * in {@code ResponseEntity} body
 	 */
-	@RequestMapping(value = "/aggregateCounts", method = RequestMethod.POST)
+	@RequestMapping(path = "/aggregateCounts", method = RequestMethod.GET)
 	public ResponseEntity<Object> aggregateCounts(
 			@RequestParam(name = "cls") String cls,
 			@RequestParam(name = "aggregator") JSONObject aggregator,
