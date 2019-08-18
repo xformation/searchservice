@@ -1,0 +1,38 @@
+{
+  "generator-jhipster": {
+    "promptValues": {
+      "packageName": "com.synectiks.search"
+    },
+    "jhipsterVersion": "6.2.0",
+    "applicationType": "monolith",
+    "baseName": "search",
+    "packageName": "com.synectiks.search",
+    "packageFolder": "com/synectiks/search",
+    "serverPort": "8080",
+    "authenticationType": "jwt",
+    "cacheProvider": "ehcache",
+    "enableHibernateCache": false,
+    "websocket": "spring-websocket",
+    "databaseType": "no",
+    "devDatabaseType": "no",
+    "prodDatabaseType": "no",
+    "searchEngine": false,
+    "messageBroker": "kafka",
+    "serviceDiscoveryType": false,
+    "buildTool": "maven",
+    "enableSwaggerCodegen": true,
+    "jwtSecretKey": "YjE3YzlkNmM3MDFjZGNhYzE2OGUxMDFhMTBmZDEyZDA5MTM3MWEzODYxNGVmMmU3MmNlMzAzNTE4NWY5MDY0ZjYxOWNmYTA0MjZiYjI2OTUwNjQ3MDY2MDBkZWEzNDYyZWY3NjE4YjBmNDVmNzJlY2U3ZDM1ZGI1NTRlYTkxNTg=",
+    "useSass": true,
+    "clientPackageManager": "npm",
+    "clientFramework": "react",
+    "clientTheme": "none",
+    "clientThemeVariant": "",
+    "testFrameworks": ["gatling", "cucumber", "protractor"],
+    "jhiPrefix": "jhi",
+    "entitySuffix": "",
+    "dtoSuffix": "DTO",
+    "otherModules": [],
+    "enableTranslation": false,
+    "blueprints": []
+  }
+}
