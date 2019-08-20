@@ -55,9 +55,6 @@ spring:
   thymeleaf:
     cache: false
 
-server:
-  port: 8080
-
 # ===================================================================
 # JHipster specific properties
 #
