@@ -3,11 +3,11 @@
 openapi: '3.0.1'
 info:
   title: 'search'
-  version: 0.0.1
+  version: 3.0.0
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8092
     description: Development server
-  - url: https://localhost:8080
+  - url: https://localhost:8092
     description: Development server with TLS Profile
 paths: {}
 

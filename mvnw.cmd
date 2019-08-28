@@ -128,17 +128,11 @@ FOR /F "tokens=1,2 delims==" %%A IN ("%MAVEN_PROJECTBASEDIR%\.mvn\wrapper\maven-
 
 @REM Extension to allow automatically downloading the maven-wrapper.jar from Maven-central
 @REM This allows using the maven wrapper in projects that prohibit checking in binary data.
-echo %WRAPPER_JAR%
 if exist %WRAPPER_JAR% (
     if "%MVNW_VERBOSE%" == "true" (
         echo Found %WRAPPER_JAR%
     )
 ) else (
-
-echo "%MVNW_REPOURL%"
-echo "%MVNW_REPOURL%/io/takari/maven-wrapper/0.5.4/maven-wrapper-0.5.4.jar"
-echo "%MVNW_VERBOSE%"
-
     if not "%MVNW_REPOURL%" == "" (
         SET DOWNLOAD_URL="%MVNW_REPOURL%/io/takari/maven-wrapper/0.5.4/maven-wrapper-0.5.4.jar"
     )
