@@ -4,6 +4,7 @@
 package com.synectiks.search.utils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.slf4j.Logger;
@@ -102,7 +104,7 @@ public interface IESUtils {
 	 * @param aggre {@code AbstractAggregationBuilder} object
 	 * @return {@code SearchQuery} instance
 	 */
-	static SearchQuery getNativeSearchQuery(BoolQueryBuilder qBuilder,
+	static SearchQuery getNativeSearchQuery(QueryBuilder qBuilder,
 			String indxName, Pageable pageReq, AbstractAggregationBuilder<?> aggre) {
 		NativeSearchQueryBuilder sQryBuilder = new NativeSearchQueryBuilder();
 		if (!IUtils.isNull(qBuilder)) {
@@ -162,6 +164,20 @@ public interface IESUtils {
 	static BoolQueryBuilder createBoolQuery(ESQryType qryType, QueryBuilder qBuilder) {
 		BoolQueryBuilder boolQB = QueryBuilders.boolQuery();
 		return boolQueryBuilder(boolQB, qryType, qBuilder);
+	}
+
+	/**
+	 * Method to generate a bool query from QueryBuilder
+	 * @param qryType
+	 * @param builders
+	 * @return 
+	 */
+	static BoolQueryBuilder createBoolQuery(ESQryType qryType, List<QueryBuilder> builders) {
+		BoolQueryBuilder boolQB = QueryBuilders.boolQuery();
+		for (QueryBuilder qBuilder : builders) {
+			boolQueryBuilder(boolQB, qryType, qBuilder);
+		}
+		return boolQB;
 	}
 
 	/**
@@ -447,5 +463,204 @@ public interface IESUtils {
 			}
 		}
 		return res;
+	}
+
+	/**
+	 * Method to check field names to identify is there is any nested property
+	 * @param lst
+	 * @return true if a field has "." inside the name.
+	 */
+	static boolean isNested(List<String> lst) {
+		 for (String item : lst) {
+			if (item.indexOf(".") > 1) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Method to return nested path to search for query
+	 * @param paths
+	 * @param query 
+	 * @return
+	 */
+	static List<QueryBuilder> createNestedQueries(JSONObject paths, String query) {
+		List<QueryBuilder> builders = new ArrayList<>();
+		if (!IUtils.isNull(paths) && paths.length() > 0) {
+			@SuppressWarnings("rawtypes")
+			Iterator it = paths.keys();
+			while(it.hasNext()) {
+				String key = (String) it.next();
+				JSONObject val = paths.optJSONObject(key);
+				if (!IUtils.isNull(val)) {
+					if (val.length() > 0) {
+						if (val.length() > 1) {
+							// it has multiple values
+							List<String> flds = new ArrayList<String>();
+							@SuppressWarnings("rawtypes")
+							Iterator keys = val.keys();
+							while(keys.hasNext()) {
+								flds.add((String) keys.next());
+							}
+							builders.add(QueryBuilders.nestedQuery(key,
+									getStringQueryBuilder(flds, query), ScoreMode.None));
+						} else {
+							// has more nesting
+							QueryBuilder nested = QueryBuilders.nestedQuery(key,
+									getNestedBuilders(val, query), ScoreMode.None);
+							builders.add(nested);
+						}
+					} else {
+						builders.add(getStringQueryBuilder(Arrays.asList(key), query));
+					}
+				}
+			}
+		}
+		return builders;
+	}
+
+	static QueryBuilder getNestedBuilders(JSONObject json, String query) {
+		QueryBuilder builder = null;
+		if (!IUtils.isNull(json) && json.length() > 0) {
+			@SuppressWarnings("rawtypes")
+			Iterator it = json.keys();
+			while(it.hasNext()) {
+				String key = (String) it.next();
+				JSONObject val = json.optJSONObject(key);
+				if (!IUtils.isNull(val)) {
+					if (val.length() > 0) {
+						if (val.length() > 1) {
+							// it has multiple values
+							List<String> flds = new ArrayList<String>();
+							@SuppressWarnings("rawtypes")
+							Iterator keys = val.keys();
+							while(keys.hasNext()) {
+								flds.add((String) keys.next());
+							}
+							builder = QueryBuilders.nestedQuery(key,
+									getStringQueryBuilder(flds, query), ScoreMode.None);
+						} else {
+							builder = QueryBuilders.nestedQuery(key,
+									getNestedBuilders(val, query), ScoreMode.None);
+						}
+					} else {
+						builder = getStringQueryBuilder(Arrays.asList(key), query);
+					}
+				}
+			}
+		}
+		return builder;
+	}
+
+	static QueryBuilder getStringQueryBuilder(List<String> keys, String query) {
+		QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery(query);
+		builder.analyzeWildcard(true);
+		for (String fld : keys) {
+			builder.field(fld);
+		}
+		// Add a string query builder
+		return builder;
+	}
+
+	static JSONObject getNestedPaths(List<String> lst) {
+		//List<String> lst = Arrays.asList("a.b.c.d", "a.b.c", "h.i", "j");
+		JSONObject obj = new JSONObject();
+		for (String fld : lst) {
+			fillPathWithFields(fld, obj);
+		}
+		obj = mergeAllKeys(obj);
+		IUtils.logger.info("Merged: " + obj);
+		return obj;
+	}
+
+	static JSONObject mergeAllKeys(JSONObject obj) {
+		JSONObject merged = null;
+		if (obj.length() > 1) {
+			int cnt = 0;
+			@SuppressWarnings("rawtypes")
+			Iterator keys = obj.keys();
+			while (keys.hasNext()) {
+				String key = (String) keys.next();
+				JSONObject val = obj.optJSONObject(key);
+				if (cnt > 0) {
+					if (!IUtils.isNull(val)) {
+						if (val.length() == 0) {
+							// just insert the key values into target merged obj.
+							try {
+								merged.put(key, val);
+							} catch (JSONException e) {
+								// ignore it.
+							}
+						} else {
+							merged = IUtils.deepMerge(val, merged, true);
+						}
+					}
+				} else {
+					merged = val;
+				}
+				cnt++;
+			}
+		}
+		return (IUtils.isNull(merged) ? obj : merged);
+	}
+
+	static void fillPathWithFields(String fld, JSONObject json) {
+		List<String> lst = IUtils.getListFromString(fld, ".");
+		if (lst.size() > 4) {
+			throw new RuntimeException("Only level 4 nesting is supported till now.");
+		}
+		if (!IUtils.isNull(lst)) {
+			try {
+				JSONObject root = null;
+				String path = "";
+				if (lst.size() > 1) {// [a, b, c]
+					JSONObject tmp = root;
+					for (int i = 0; i < (lst.size() - 1); i++) {
+						String key = lst.get(i);// a, b
+						IUtils.logger.info("key: " + key);
+						String prevKey = (path.length() > 0 ? path : null);
+						IUtils.logger.info("prevKey: " + prevKey);
+						path += (path.length() > 0 ? "." : "") + key;
+						IUtils.logger.info("path: " + path);
+						JSONObject val = null;
+						if (i == 0 && json.has(key)) {
+							val = json.getJSONObject(key);
+						}
+						if (!IUtils.isNull(tmp) && !IUtils.isNullOrEmpty(prevKey) &&
+								tmp.has(prevKey)) {
+							val = tmp.optJSONObject(prevKey);
+						}
+						JSONObject plchldr = new JSONObject();
+						if (IUtils.isNull(val)) {
+							val = new JSONObject();
+						}
+						if (i == (lst.size() - 2)) {
+							plchldr.put(fld, new JSONObject());
+						}
+						val.put(path, plchldr);
+						IUtils.logger.info("val: " + val);
+						if (!IUtils.isNull(tmp)) {
+							tmp.put(prevKey, val);
+							if (IUtils.isNull(root)) {
+								root = tmp;
+								tmp = val;
+							}
+						} else {
+							tmp = val;
+						}
+						IUtils.logger.info("tmp: " + tmp);
+						IUtils.logger.info("root: " + root);
+					}
+					if (IUtils.isNull(root)) {
+						root = tmp;
+					}
+				}
+				json.put(fld, (IUtils.isNull(root) ? new JSONObject() : root));
+			} catch (JSONException je) {
+				// ignore it.
+			}
+			IUtils.logger.info("Final Obj: " + json);
+		}
 	}
 }

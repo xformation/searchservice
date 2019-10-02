@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
@@ -121,7 +122,7 @@ public class ESExpression {
 			IESUtils.processFilter(or, ESQryType.SHOULD, boolQB);
 			IESUtils.processFilter(not, ESQryType.NOT, boolQB);
 			IESUtils.processFilter(filters, ESQryType.FILTER, boolQB);
-			AbstractAggregationBuilder aggreBuilder = null;
+			AbstractAggregationBuilder<?> aggreBuilder = null;
 			if (!IUtils.isNull(aggre)) {
 				aggreBuilder = aggre.createAggregationBuilder();
 			}
@@ -199,21 +200,29 @@ public class ESExpression {
 		 * @return
 		 */
 		public SearchQuery build() {
-			PageRequest pageReq = IESUtils.getPageRequest(pageNo, pageSize);
 			List<String> lst = IUtils.getListFromString(fields, null);
-			// Create string query builder
-			QueryStringQueryBuilder qStrBuilder = QueryBuilders.queryStringQuery(query)
-					.analyzeWildcard(true);
-			// Add fields into search query
-			lst.forEach((item) -> {
-				qStrBuilder.field(item);
-			});
 			if (IUtils.isNullOrEmpty(indexName) && !IUtils.isNullOrEmpty(clazz)) {
 				indexName = IESUtils.getIndexName(IUtils.getClass(clazz));
 			}
-			// Finally create a bool query builder with query type
-			BoolQueryBuilder qb = IESUtils.createBoolQuery(
-					IESUtils.ESQryType.SHOULD, qStrBuilder);
+			QueryBuilder qb = null;
+			if (IESUtils.isNested(lst)) {
+				List<QueryBuilder> builders = IESUtils.createNestedQueries(
+						IESUtils.getNestedPaths(lst), query);
+				qb = IESUtils.createBoolQuery(
+						IESUtils.ESQryType.SHOULD, builders);
+			} else {
+				// Create string query builder
+				QueryStringQueryBuilder qStrBuilder = QueryBuilders.queryStringQuery(query)
+						.analyzeWildcard(true);
+				// Add fields into search query
+				lst.forEach((item) -> {
+					qStrBuilder.field(item);
+				});
+				// Finally create a bool query builder with query type
+				qb = IESUtils.createBoolQuery(
+						IESUtils.ESQryType.SHOULD, qStrBuilder);
+			}
+			PageRequest pageReq = IESUtils.getPageRequest(pageNo, pageSize);
 			return IESUtils.getNativeSearchQuery(qb, indexName, pageReq, null);
 		}
 	}
