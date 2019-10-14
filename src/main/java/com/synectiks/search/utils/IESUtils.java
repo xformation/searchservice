@@ -376,6 +376,9 @@ public interface IESUtils {
 		if (!IUtils.isNullOrEmpty(cls)) {
 			Class<?> clazz = IUtils.getClass(cls);
 			Object obj = IUtils.getObjectFromValue(entity, clazz);
+			if (IUtils.isNull(obj)) {
+				throw new Exception("Failed to parse entity as object of " + cls);
+			}
 			event = new ESEvent(EventType.valueOf(eventType), obj);
 		}
 		return event;
