@@ -163,5 +163,9 @@ jhipster:
 logging:
   level:
     com.amazonaws: info
-    org.springframework: info
+    org:
+      springframework:
+        data:
+          elasticsearch:
+            core: DEBUG
     com.synectiks.portal: trace
