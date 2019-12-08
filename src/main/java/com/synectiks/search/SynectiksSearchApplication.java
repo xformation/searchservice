@@ -1,21 +1,33 @@
 package com.synectiks.search;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.apache.catalina.connector.Connector;
 import org.apache.commons.lang3.StringUtils;
+import org.elasticsearch.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.embedded.tomcat.TomcatConnectorCustomizer;
+import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.EntityMapper;
 
+import com.synectiks.commons.utils.IUtils;
 import com.synectiks.search.config.ApplicationProperties;
 
 import io.github.jhipster.config.JHipsterConstants;
@@ -106,6 +118,41 @@ public class SynectiksSearchApplication implements InitializingBean {
 	 */
 	public static <T> T getBean(Class<T> cls) {
 		return ctx.getBean(cls);
+	}
+
+	@Bean
+	public ConfigurableServletWebServerFactory webServerFactory() {
+		TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
+		factory.addConnectorCustomizers(new TomcatConnectorCustomizer() {
+			@Override
+			public void customize(Connector connector) {
+				connector.setProperty("relaxedQueryChars", "|{}[]");
+			}
+		});
+		return factory;
+	}
+
+	@Bean
+	@Primary
+	public EntityMapper getEntityMapper() {
+		return new EntityMapper() {
+			
+			@Override
+			public String mapToString(Object object) throws IOException {
+				return IUtils.OBJECT_MAPPER.writeValueAsString(object);
+			}
+			
+			@Override
+			public <T> T mapToObject(String source, Class<T> clazz) throws IOException {
+				return IUtils.OBJECT_MAPPER.readValue(source, clazz);
+			}
+		};
+	}
+
+	@Bean
+	@Autowired
+	public ElasticsearchTemplate elasticsearchTemplate(Client client) {
+		return new ElasticsearchTemplate(client, getEntityMapper());
 	}
 
 }

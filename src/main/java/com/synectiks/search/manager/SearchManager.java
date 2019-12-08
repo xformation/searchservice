@@ -235,6 +235,8 @@ public class SearchManager {
 	 */
 	private List<?> executeQuery(
 			SearchQuery sQry, Class<?> cls, int page, int size) {
+		logger.info("Query: " + sQry.getQuery());
+		logger.info("Filters: " + sQry.getFilter());
 		if (!IUtils.isNull(cls)) {
 			if (IESUtils.isScrollQuery(page, size)) {
 				return getScrollResults(sQry, cls, page, size);

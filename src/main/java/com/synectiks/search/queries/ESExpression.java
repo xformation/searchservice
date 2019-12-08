@@ -13,6 +13,8 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.QueryStringQueryBuilder;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 
@@ -27,6 +29,8 @@ import com.synectiks.search.utils.IESUtils.ESQryType;
  */
 public class ESExpression {
 
+	private static final Logger logger = LoggerFactory.getLogger(ESExpression.class);
+
 	/**
 	 * Class to generate search query form params 
 	 * @author Rajesh
@@ -36,44 +40,44 @@ public class ESExpression {
 
 		private static final long serialVersionUID = -9037665749748247257L;
 
-		private List<Filters> and;
-		private List<Filters> or;
-		private List<Filters> not;
-		private List<Filters> filters;
+		private List<Map<String, String>> and;
+		private List<Map<String, String>> or;
+		private List<Map<String, String>> not;
+		private List<Map<String, String>> filters;
 		private String clazz;
 		private int pageNo;
 		private int pageSize;
 		private Aggregator aggre;
 
-		public List<Filters> getAnd() {
+		public List<Map<String, String>> getAnd() {
 			return and;
 		}
 
-		public List<Filters> getOr() {
+		public List<Map<String, String>> getOr() {
 			return or;
 		}
 
-		public List<Filters> getNot() {
+		public List<Map<String, String>> getNot() {
 			return not;
 		}
 
-		public List<Filters> getFilters() {
+		public List<Map<String, String>> getFilters() {
 			return filters;
 		}
 
-		public void setAnd(List<Filters> and) {
+		public void setAnd(List<Map<String, String>> and) {
 			this.and = and;
 		}
 
-		public void setOr(List<Filters> or) {
+		public void setOr(List<Map<String, String>> or) {
 			this.or = or;
 		}
 
-		public void setNot(List<Filters> not) {
+		public void setNot(List<Map<String, String>> not) {
 			this.not = not;
 		}
 
-		public void setFilters(List<Filters> filters) {
+		public void setFilters(List<Map<String, String>> filters) {
 			this.filters = filters;
 		}
 
@@ -106,6 +110,48 @@ public class ESExpression {
 			return this;
 		}
 
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("{ ");
+			if (and != null) {
+				builder.append("\"and\": \"");
+				builder.append(and + "\"");
+				builder.append(", ");
+			}
+			if (or != null) {
+				builder.append("\"or\": \"");
+				builder.append(or + "\"");
+				builder.append(", ");
+			}
+			if (not != null) {
+				builder.append("\"not\": \"");
+				builder.append(not + "\"");
+				builder.append(", ");
+			}
+			if (filters != null) {
+				builder.append("\"filters\": \"");
+				builder.append(filters + "\"");
+				builder.append(", ");
+			}
+			if (clazz != null) {
+				builder.append("\"clazz\": \"");
+				builder.append(clazz + "\"");
+				builder.append(", ");
+			}
+			builder.append("pageNo\": ");
+			builder.append(pageNo);
+			builder.append(", pageSize\": ");
+			builder.append(pageSize);
+			builder.append(", ");
+			if (aggre != null) {
+				builder.append("\"aggre\": \"");
+				builder.append(aggre + "\"");
+			}
+			builder.append(" }");
+			return builder.toString();
+		}
+
 		/**
 		 * Method to build Elastic {@code SearchQuery} from input params
 		 * @return
@@ -126,6 +172,7 @@ public class ESExpression {
 			if (!IUtils.isNull(aggre)) {
 				aggreBuilder = aggre.createAggregationBuilder();
 			}
+			logger.info("BoolQuery: " + boolQB);
 			return IESUtils.getNativeSearchQuery(boolQB, indexName, pageReq, aggreBuilder);
 		}
 
@@ -143,6 +190,7 @@ public class ESExpression {
 			try {
 				builder = IUtils.OBJECT_MAPPER.readValue(
 						filters, FiltersQueryBuilder.class);
+				logger.info("ParsedObject: " + builder);
 				builder.setClazz(cls);
 				builder.setPageNo(pageNo);
 				builder.setPageSize(pageSize);
@@ -231,8 +279,7 @@ public class ESExpression {
 	 * Class to hold all filters key values
 	 * @author Rajesh
 	 */
-	@JsonIgnoreProperties(ignoreUnknown = true)
-	public static class Filters implements Serializable {
+	public static class KeyValues implements Serializable {
 
 		private static final long serialVersionUID = 1723527749522551204L;
 
@@ -244,6 +291,18 @@ public class ESExpression {
 
 		public void setFilters(Map<String, String> filters) {
 			this.filters = filters;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("{ ");
+			if (filters != null) {
+				builder.append("\"filters\": \"");
+				builder.append(filters + "\"");
+			}
+			builder.append(" }");
+			return builder.toString();
 		}
 	}
 

@@ -31,7 +31,6 @@ import com.synectiks.commons.entities.dynamodb.Entity;
 import com.synectiks.commons.entities.search.ESEvent;
 import com.synectiks.commons.entities.search.ESEvent.EventType;
 import com.synectiks.commons.utils.IUtils;
-import com.synectiks.search.queries.ESExpression.Filters;
 import com.synectiks.search.queries.RangeFilter;
 
 /**
@@ -216,10 +215,10 @@ public interface IESUtils {
 	 * @param boolQB
 	 * @return
 	 */
-	static void processFilter(List<Filters> filters,
+	static void processFilter(List<Map<String, String>> filters,
 			ESQryType qryType, BoolQueryBuilder boolQB) {
 		if (!IUtils.isNull(filters) && ! filters.isEmpty()) {
-			for (Filters filter : filters) {
+			for (Map<String, String> filter : filters) {
 				processFilterMap(filter, qryType, boolQB);
 			}
 		}
@@ -229,16 +228,15 @@ public interface IESUtils {
 	 * Process filter map to generate query
 	 * @param filter
 	 */
-	static void processFilterMap(Filters filter,
+	static void processFilterMap(Map<String, String> filter,
 			ESQryType qryType, BoolQueryBuilder boolQB) {
 		if (!IUtils.isNull(filter)) {
-			Map<String, String> map = filter.getFilters();
-			if (!IUtils.isNull(map) && !map.isEmpty()) {
-				for (String key : map.keySet()) {
+			if (!filter.isEmpty()) {
+				for (String key : filter.keySet()) {
 					if (IConsts.RANGES.equals(key)) {
-						addRangeFilters(key, map.get(key), qryType, boolQB);
+						addRangeFilters(key, filter.get(key), qryType, boolQB);
 					} else {
-						addSearchQuery(key, map.get(key), qryType, boolQB);
+						addSearchQuery(key, filter.get(key), qryType, boolQB);
 					}
 				}
 			}
@@ -666,4 +664,12 @@ public interface IESUtils {
 			IUtils.logger.info("Final Obj: " + json);
 		}
 	}
+/*
+	public static void main(String[] args) {
+		String json = "{\"filters\": [{\"teacherName\":\"Anupam\"}]}";
+		SearchQuery sQry = FiltersQueryBuilder.create("com.synectiks.cms.entities.Teacher",
+				json, 1, 10).build();
+		logger.info("Query: " + sQry.getQuery());
+		logger.info("Filters: " + sQry.getFilter());
+	}*/
 }

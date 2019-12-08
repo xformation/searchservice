@@ -71,6 +71,7 @@ spring:
   jackson:
     serialization:
       FAIL_ON_EMPTY_BEANS: false
+      write-dates-as-timestamps: false
   messages:
     basename: i18n/messages
   main:
