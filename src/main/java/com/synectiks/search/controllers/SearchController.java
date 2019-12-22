@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.synectiks.commons.constants.IConsts;
-import com.synectiks.commons.entities.SourceEntity;
 import com.synectiks.commons.entities.search.ESEvent;
 import com.synectiks.commons.interfaces.IApiController;
 import com.synectiks.commons.utils.IUtils;
@@ -113,7 +112,7 @@ public class SearchController {
 					required = false) boolean fieldsOnly) {
 		logger.info(cls + ", " + fieldsOnly);
 		Object res = null;
-		try {SourceEntity.class.getName();
+		try {
 			// Search in specified fields with page numbers
 			@SuppressWarnings("rawtypes")
 			Map mappings  = searchManger.gettMapping(cls);
@@ -122,6 +121,29 @@ public class SearchController {
 			} else {
 				res = mappings;
 			}
+		} catch (Exception ex) {
+			logger.error(ex.getMessage(), ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(res, HttpStatus.OK);
+	}
+
+	/**
+	 * API endpoint to get list of indexes from Elastic
+	 * or entities names from a package.
+	 * @param fromElastic send 'true' to get all indexes from elastic
+	 * @param pkg set package to search for IESEntity sub classes.
+	 * @return List
+	 */
+	@RequestMapping(path = "/getIndexes", method = RequestMethod.GET)
+	public ResponseEntity<Object> getIndexes(
+			@RequestParam(name = "fromElastic", required = false) boolean fromElastic,
+			@RequestParam(name = "pkg", required = false) String pkg) {
+		logger.info(pkg + ", " + fromElastic);
+		Object res = null;
+		try {
+			res = searchManger.listIndicies(fromElastic, pkg);
 		} catch (Exception ex) {
 			logger.error(ex.getMessage(), ex);
 			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
@@ -151,7 +173,7 @@ public class SearchController {
 					required = false, defaultValue = "10") int pageSize) {
 		Object res = null;
 		try {
-			logger.info("ElsQuery: " + elsQuery);
+			logger.info("Cls: " + cls + "\nElsQuery: " + elsQuery);
 			// Search in specified fields with page numbers
 			SearchResponse searchResults = searchManger.elsSearch(
 					elsQuery, cls, pageNo, pageSize);

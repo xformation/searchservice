@@ -4,11 +4,14 @@
 package com.synectiks.search.manager;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jettison.json.JSONObject;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.index.query.IdsQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -35,10 +38,12 @@ import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Component;
 
 import com.synectiks.commons.constants.IConsts;
+import com.synectiks.commons.interfaces.IESEntity;
 import com.synectiks.commons.utils.IUtils;
 import com.synectiks.search.queries.Aggregator;
 import com.synectiks.search.queries.ESExpression.FiltersQueryBuilder;
 import com.synectiks.search.queries.ESExpression.StringQueryBuilder;
+import com.synectiks.search.utils.ClassFinder;
 import com.synectiks.search.utils.IESUtils;
 
 /**
@@ -49,12 +54,13 @@ public class SearchManager {
 
 	private static final Logger logger = LoggerFactory
 			.getLogger(SearchManager.class);
+	private static final String ENTITY_PKG = "com.synectiks.cms.entities";
 
 	@Autowired
-	private ElasticsearchTemplate searchTemplate;
+	private ElasticsearchTemplate esTemplate;
 
 	public ElasticsearchTemplate getESTemplate() {
-		return searchTemplate;
+		return esTemplate;
 	}
 
 	/**
@@ -65,7 +71,36 @@ public class SearchManager {
 	@SuppressWarnings("rawtypes")
 	public Map gettMapping(String cls) {
 		Class<?> clazz = IUtils.getClass(cls);
-		return searchTemplate.getMapping(clazz);
+		return esTemplate.getMapping(clazz);
+	}
+
+	/**
+	 * Method to get list of indexes either from entities or from elastic
+	 * @param fromElastic
+	 * @param pkg 
+	 * @return
+	 */
+	public List<String> listIndicies(boolean fromElastic, String pkg) {
+		List<String> lst = null;
+		if (fromElastic) {
+			try {
+				GetIndexResponse indexes = esTemplate.getClient().admin()
+						.indices().getIndex(new GetIndexRequest()).get();
+				return Arrays.asList(indexes.getIndices());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else {
+			if (IUtils.isNullOrEmpty(pkg)) {
+				pkg = ENTITY_PKG;
+			}
+			List<Class<?>> classes = ClassFinder.find(pkg, IESEntity.class);
+			lst = new ArrayList<>();
+			for (Class<?> cls : classes) {
+				lst.add(cls.getName());
+			}
+		}
+		return lst;
 	}
 
 	/**
@@ -75,16 +110,16 @@ public class SearchManager {
 	 * @return
 	 */
 	public List<String> getDocsById(String cls, List<String> ids) {
-		String type = searchTemplate.getPersistentEntityFor(
+		String type = esTemplate.getPersistentEntityFor(
 				IUtils.getClass(cls)).getIndexType();
 		IdsQueryBuilder sQry = QueryBuilders.idsQuery(type)
 				.addIds(IUtils.isNull(ids) ? null : ids.toArray(new String[ids.size()]));
 		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
 				.withQuery(sQry)
-				.withIndices(searchTemplate.getPersistentEntityFor(
+				.withIndices(esTemplate.getPersistentEntityFor(
 						IUtils.getClass(cls)).getIndexName())
 				.build();
-		List<String> res = searchTemplate.query(nsqb, new SearchResultExtractor());
+		List<String> res = esTemplate.query(nsqb, new SearchResultExtractor());
 		/*
 		SearchResponse sres = searchTemplate.getClient().prepareSearch(
 				searchTemplate.getPersistentEntityFor(
@@ -108,12 +143,12 @@ public class SearchManager {
 	public boolean putMapping(String cls, String mappings, boolean isUpdate) {
 		Class<?> clazz = IUtils.getClass(cls);
 		boolean created = false;
-		if (!searchTemplate.indexExists(clazz)) {
-			created = searchTemplate.createIndex(clazz);
+		if (!esTemplate.indexExists(clazz)) {
+			created = esTemplate.createIndex(clazz);
 		}
 		// add mapping only it newly created index or we have to update it.
 		if (created || isUpdate) {
-			return searchTemplate.putMapping(clazz, mappings);
+			return esTemplate.putMapping(clazz, mappings);
 		}
 		return false;
 	}
@@ -141,7 +176,7 @@ public class SearchManager {
 		if (!IUtils.isNull(cls)) {
 			lst = executeQuery(sQry, IUtils.getClass(cls), page, size);
 		} else {
-			lst = searchTemplate.query(sQry, new SearchResultExtractor());
+			lst = esTemplate.query(sQry, new SearchResultExtractor());
 		}
 		return lst;
 	}
@@ -156,17 +191,26 @@ public class SearchManager {
 	 */
 	public SearchResponse elsSearch(String elsQuery, String cls, int pageNo,
 			int pageSize) {
+//		return esTemplate.getClient().prepareSearch(
+//				esTemplate.getPersistentEntityFor(IUtils.getClass(cls)).getIndexName())
+//				.setQuery(QueryBuilders.wrapperQuery(elsQuery))
+//				.setSize(pageSize)
+//				.setFrom(pageNo * pageSize)
+//				.execute()
+//				.actionGet();
+		
+		// Following code run only elastic below 5.0
 		PageRequest pageReq = IESUtils.getPageRequest(pageNo, pageSize);
 		// Finally create a bool query builder with query type
 		elsQuery = IESUtils.getElsQuery(elsQuery);
 		WrapperQueryBuilder wqb = QueryBuilders.wrapperQuery(elsQuery);
 		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
 				//.withTypes(cls)
-				.withIndices(searchTemplate.getPersistentEntityFor(
+				.withIndices(esTemplate.getPersistentEntityFor(
 						IUtils.getClass(cls)).getIndexName())
 				.withQuery(wqb)
 				.withPageable(pageReq).build();
-		return searchTemplate.query(nsqb, new ResultsExtractor<SearchResponse>() {
+		return esTemplate.query(nsqb, new ResultsExtractor<SearchResponse>() {
 			@Override
 			public SearchResponse extract(SearchResponse response) {
 				return response;
@@ -202,7 +246,7 @@ public class SearchManager {
 		logger.info("Cls: " + cls + ", json: " + json);
 		SearchQuery sQry = FiltersQueryBuilder.create(cls, json, 0, 0).build();
 		// Search the query string
-		long lst = searchTemplate.count(sQry, IUtils.getClass(cls));
+		long lst = esTemplate.count(sQry, IUtils.getClass(cls));
 		return lst;
 	}
 
@@ -220,7 +264,7 @@ public class SearchManager {
 		SearchQuery sQry = FiltersQueryBuilder.create(cls, json, 0, 0)
 				.withAggregator(aggre).build();
 		// Search the query string with aggregation result extractor
-		Map<String, Object> lst = searchTemplate.query(sQry,
+		Map<String, Object> lst = esTemplate.query(sQry,
 				new AggregationResultExtractor(aggre));
 		return lst;
 	}
@@ -241,7 +285,7 @@ public class SearchManager {
 			if (IESUtils.isScrollQuery(page, size)) {
 				return getScrollResults(sQry, cls, page, size);
 			} else {
-				return searchTemplate.queryForList(sQry, cls);
+				return esTemplate.queryForList(sQry, cls);
 			}
 		}
 		return null;
@@ -261,11 +305,11 @@ public class SearchManager {
 		List<Object> lst = null;
 		if (!IUtils.isNull(cls) && !IUtils.isNull(sQry)) {
 			List<Object> pages = new ArrayList<>();
-			Page<?> scroll = searchTemplate.startScroll(
+			Page<?> scroll = esTemplate.startScroll(
 					IConsts.ES_SCROLL_TIMEOUT, sQry, cls);
 			String scrollId = ((ScrolledPage<?>) scroll).getScrollId();
 			while (true) {
-				Page<?> pg = searchTemplate.continueScroll(
+				Page<?> pg = esTemplate.continueScroll(
 						scrollId, IConsts.ES_SCROLL_TIMEOUT, cls);
 				if (pg.hasContent()) {
 					pages.addAll(pg.getContent());

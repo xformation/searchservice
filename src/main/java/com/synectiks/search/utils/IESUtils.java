@@ -664,12 +664,18 @@ public interface IESUtils {
 			IUtils.logger.info("Final Obj: " + json);
 		}
 	}
-/*
-	public static void main(String[] args) {
-		String json = "{\"filters\": [{\"teacherName\":\"Anupam\"}]}";
-		SearchQuery sQry = FiltersQueryBuilder.create("com.synectiks.cms.entities.Teacher",
-				json, 1, 10).build();
-		logger.info("Query: " + sQry.getQuery());
-		logger.info("Filters: " + sQry.getFilter());
-	}*/
+//
+//	public static void main(String[] args) {
+//		
+//		  String json = "{\"filters\": [{\"teacherName\":\"Anupam\"}]}";
+//		  SearchQuery sQry =
+//		  FiltersQueryBuilder.create("com.synectiks.cms.entities.Teacher",
+//		  json, 1, 10).build(); logger.info("Query: " + sQry.getQuery());
+//		  logger.info("Filters: " + sQry.getFilter());
+//		 
+//		List<Class<?>> classes = ClassFinder.find("com.synectiks.cms.entities", IESEntity.class);
+//		for (Class<?> cls : classes) {
+//			System.out.println(cls.getName());
+//		}
+//	}
 }
