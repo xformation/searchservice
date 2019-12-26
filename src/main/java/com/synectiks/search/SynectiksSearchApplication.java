@@ -139,12 +139,12 @@ public class SynectiksSearchApplication implements InitializingBean {
 			
 			@Override
 			public String mapToString(Object object) throws IOException {
-				return IUtils.OBJECT_MAPPER.writeValueAsString(object);
+				return IUtils.ELST_MAPPER.writeValueAsString(object);
 			}
 			
 			@Override
 			public <T> T mapToObject(String source, Class<T> clazz) throws IOException {
-				return IUtils.OBJECT_MAPPER.readValue(source, clazz);
+				return IUtils.ELST_MAPPER.readValue(source, clazz);
 			}
 		};
 	}

@@ -71,13 +71,16 @@ public class SearchESEventReceiver extends ESEventReceiver {
 		if (!IUtils.isNull(event) && !IUtils.isNull(event.getEntity())) {
 			IndexQueryBuilder indxQryBuilder = new IndexQueryBuilder();
 			IESEntity target = (IESEntity) event.getEntity();
-			if (!IUtils.isNull(IESUtils.getESID(target))) {
+			if (!IUtils.isNullOrEmpty(IESUtils.getESID(target))) {
+				logger.info("ESID: " + IESUtils.getESID(target));
 				indxQryBuilder.withId(IESUtils.getESID(target));
 			}
-			if (!IUtils.isNull(IESUtils.getIndexName(target))) {
+			if (!IUtils.isNullOrEmpty(IESUtils.getIndexName(target))) {
+				logger.info("getIndexName: " + IESUtils.getIndexName(target));
 				indxQryBuilder.withIndexName(IESUtils.getIndexName(target));
 			}
-			if (!IUtils.isNull(IESUtils.getIndexType(target))) {
+			if (!IUtils.isNullOrEmpty(IESUtils.getIndexType(target))) {
+				logger.info("getIndexType: " + IESUtils.getIndexType(target));
 				indxQryBuilder.withId(IESUtils.getIndexType(target));
 			}
 			// finally set object to index

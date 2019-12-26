@@ -70,7 +70,7 @@ spring:
       cluster-nodes: localhost:9300
   jackson:
     serialization:
-      FAIL_ON_EMPTY_BEANS: false
+      fail-on-empty-beans: false
       write-dates-as-timestamps: false
   messages:
     basename: i18n/messages
