@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ResultsExtractor;
 import org.springframework.data.elasticsearch.core.ScrolledPage;
@@ -77,15 +78,17 @@ public class SearchManager {
 	/**
 	 * Method to get list of indexes either from entities or from elastic
 	 * @param fromElastic
-	 * @param pkg 
+	 * @param pkg
+	 * @param json
 	 * @return
 	 */
-	public List<String> listIndicies(boolean fromElastic, String pkg) {
+	public List<String> listIndicies(boolean fromElastic, String pkg, boolean json) {
 		List<String> lst = null;
 		if (fromElastic) {
 			try {
-				GetIndexResponse indexes = esTemplate.getClient().admin()
-						.indices().getIndex(new GetIndexRequest()).get();
+				GetIndexResponse indexes = esTemplate.getClient().admin().indices()
+						.getIndex(new GetIndexRequest()).get();
+				// logger.info("Aliases: " + indexes.aliases());
 				return Arrays.asList(indexes.getIndices());
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -97,7 +100,20 @@ public class SearchManager {
 			List<Class<?>> classes = ClassFinder.find(pkg, IESEntity.class);
 			lst = new ArrayList<>();
 			for (Class<?> cls : classes) {
-				lst.add(cls.getName());
+				StringBuilder sb = new StringBuilder();
+				if (json) {
+					sb.append("{ \"" + cls.getSimpleName() + "\": {");
+					if (cls.isAnnotationPresent(Document.class)) {
+						Document doc = cls.getAnnotation(Document.class);
+						sb.append("\"cls\": \"" + cls.getName() + "\",");
+						sb.append("\"indexName\": \"" + doc.indexName() + "\",");
+						sb.append("\"indexType\": \"" + doc.type() + "\"");
+					}
+					sb.append("} }");
+				} else {
+					sb.append(cls.getName());
+				}
+				lst.add(sb.toString());
 			}
 		}
 		return lst;

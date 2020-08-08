@@ -134,16 +134,18 @@ public class SearchController {
 	 * or entities names from a package.
 	 * @param fromElastic send 'true' to get all indexes from elastic
 	 * @param pkg set package to search for IESEntity sub classes.
+	 * @param json set true if you need pkg response as object with index name and type.
 	 * @return List
 	 */
 	@RequestMapping(path = "/getIndexes", method = RequestMethod.GET)
 	public ResponseEntity<Object> getIndexes(
-			@RequestParam(name = "fromElastic", required = false) boolean fromElastic,
-			@RequestParam(name = "pkg", required = false) String pkg) {
+			@RequestParam(required = false) boolean fromElastic,
+			@RequestParam(required = false) String pkg,
+			@RequestParam(required = false) boolean json) {
 		logger.info(pkg + ", " + fromElastic);
 		Object res = null;
 		try {
-			res = searchManger.listIndicies(fromElastic, pkg);
+			res = searchManger.listIndicies(fromElastic, pkg, json);
 		} catch (Exception ex) {
 			logger.error(ex.getMessage(), ex);
 			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
