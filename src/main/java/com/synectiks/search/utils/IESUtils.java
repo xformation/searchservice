@@ -135,6 +135,10 @@ public interface IESUtils {
 				return true;
 			}
 		}
+		// Consider force scroll
+		if (size == -1) {
+			return true;
+		}
 		return false;
 	}
 
