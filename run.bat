@@ -1,0 +1,1 @@
+java -jar target/search-3.0.0-SNAPSHOT-exec.jar --SERVER_PORT=8092
