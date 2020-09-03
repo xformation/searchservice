@@ -14,11 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.synectiks.commons.constants.IConsts;
 import com.synectiks.commons.entities.search.ESEvent;
 import com.synectiks.commons.interfaces.IApiController;
@@ -27,6 +29,7 @@ import com.synectiks.search.manager.SearchManager;
 import com.synectiks.search.queries.Aggregator;
 import com.synectiks.search.receiver.SearchESEventReceiver;
 import com.synectiks.search.utils.IESUtils;
+//import org.elasticsearch.client.Client;
 
 /**
  * @author Rajesh
@@ -384,4 +387,39 @@ public class SearchController {
 		return new ResponseEntity<>(res, HttpStatus.OK);
 	}
 
+	@RequestMapping(path = "/updateWithQuery", method = RequestMethod.POST)
+	public ResponseEntity<Object> updateWithQuery(@RequestBody ObjectNode obj){
+		List<?> searchResults = null;	
+		try {
+			String type = obj.get("type").asText();
+			String index = obj.get("index").asText();
+			String searchKey = obj.get("searchKey").asText();
+			String searchValue =obj.get("searchValue").asText();
+			String updateKey = obj.get("updateKey").asText();
+			String updateValue = obj.get("updateValue").asText();
+			searchResults = searchManger.updateWithQuery(type, index, searchKey, searchValue, updateKey, updateValue);
+		} catch (Exception ex) {
+			logger.error("Exeption in updateWithQuery: ", ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(searchResults, HttpStatus.OK);
+	}
+	
+	@RequestMapping(path = "/deleteWithQuery", method = RequestMethod.POST)
+	public ResponseEntity<Object> deleteWithQuery(@RequestBody ObjectNode obj){
+		List<?> searchResults = null;	
+		try {
+			String type = obj.get("type").asText();
+			String index = obj.get("index").asText();
+			String searchKey = obj.get("searchKey").asText();
+			String searchValue =obj.get("searchValue").asText();
+			searchResults = searchManger.deleteWithQuery(type, index, searchKey, searchValue);
+		} catch (Exception ex) {
+			logger.error("Exeption in deleteWithQuery: ", ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(searchResults, HttpStatus.OK);
+	}
 }
