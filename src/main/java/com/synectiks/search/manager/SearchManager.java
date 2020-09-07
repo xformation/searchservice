@@ -17,6 +17,7 @@ import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.IdsQueryBuilder;
@@ -496,12 +497,22 @@ public class SearchManager {
 			} catch (JSONException e) {
 				
 			}
+
 			updateResponse = esTemplate.getClient().prepareUpdate(index, type, docId).setDoc(jsonObj.toString(), XContentType.JSON)
-	                .setDocAsUpsert(true).get();
+					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).setDocAsUpsert(true).get();
+			
 			logger.info("Record updated in elastic : Response "+response);
 		}
 		
-		List<?> results = search("alert", null, null, 0, scrollSize);
+		response = esTemplate.getClient().prepareSearch(index)
+            	.setTypes(type)
+            	.setQuery(QueryBuilders.matchAllQuery())
+            	.setSize(scrollSize)
+            	.setFrom(i * scrollSize)
+        		.execute()
+        		.actionGet();
+		
+		List<?> results = new SearchResultExtractor().extract(response);
 		return results;
 	}
 	
@@ -533,9 +544,20 @@ public class SearchManager {
 			logger.info("Source Document : "+hit.getSourceAsString());
         }
 		
-		DeleteResponse delResponse = esTemplate.getClient().prepareDelete(index, type, docId).execute().get();
+		DeleteResponse delResponse = esTemplate.getClient().prepareDelete(index, type, docId)
+				.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+				.execute().get();
 		
-		List<?> results = search("alert", null, null, 0, scrollSize);
+//		List<?> results = search("alert", null, null, 0, scrollSize);
+		response = esTemplate.getClient().prepareSearch(index)
+            	.setTypes(type)
+            	.setQuery(QueryBuilders.matchAllQuery())
+            	.setSize(scrollSize)
+            	.setFrom(i * scrollSize)
+        		.execute()
+        		.actionGet();
+		
+		List<?> results = new SearchResultExtractor().extract(response);
 		return results;
 	}
 	
