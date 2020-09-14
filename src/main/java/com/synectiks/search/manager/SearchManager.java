@@ -561,4 +561,19 @@ public class SearchManager {
 		return results;
 	}
 	
+	public Long getTotalRecords(String type, String index) {
+		int scrollSize = 5000;
+		int i =0;
+		
+		SearchResponse response = esTemplate.getClient().prepareSearch(index)
+            	.setTypes(type)
+            	.setQuery(QueryBuilders.matchAllQuery())
+            	.setSize(scrollSize)
+            	.setFrom(i * scrollSize)
+        		.execute()
+        		.actionGet();
+		logger.debug("Total records : "+response.getHits().getTotalHits());
+		return response.getHits().getTotalHits();
+		
+	}
 }

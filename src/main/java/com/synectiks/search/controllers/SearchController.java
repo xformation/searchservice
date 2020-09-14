@@ -422,4 +422,16 @@ public class SearchController {
 		}
 		return new ResponseEntity<>(searchResults, HttpStatus.OK);
 	}
+	
+	@RequestMapping(path = "/totalRecords", method = RequestMethod.GET)
+	public ResponseEntity<Object> totalRecords(@RequestParam(name = "type") String type, @RequestParam(name = "index") String index){
+		Long total = 0L;	
+		try {
+			total = searchManger.getTotalRecords(type, index);
+		} catch (Exception ex) {
+			logger.error("Exeption in totalRecords: ", ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex), HttpStatus.EXPECTATION_FAILED);
+		}
+		return new ResponseEntity<>(total, HttpStatus.OK);
+	}
 }
