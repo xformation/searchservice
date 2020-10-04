@@ -71,7 +71,7 @@ public class SearchController {
 	}
 
 	/**
-	 * Api to create a new index in elastic if not index not exists.
+	 * Api to create a new index in elastic if index not exists.
 	 * Also add the index mappings for new entity. We can call it to
 	 * update then existing index mappings too using isUpdate field.
 	 * @param cls

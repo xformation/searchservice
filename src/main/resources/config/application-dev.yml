@@ -15,8 +15,8 @@
 
 logging:
   level:
-    ROOT: DEBUG
-    io.github.jhipster: DEBUG
+    ROOT: INFO
+    io.github.jhipster: INFO
     com.synectiks.search: DEBUG
     org.elasticsearch.index.search.slowlog.query: INFO
 
