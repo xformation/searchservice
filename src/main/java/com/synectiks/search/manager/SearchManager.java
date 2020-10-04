@@ -8,11 +8,18 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang3.StringUtils;
+import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.IdsQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.WrapperQueryBuilder;
@@ -148,6 +155,19 @@ public class SearchManager {
 		return res;
 	}
 
+//	public List<String> getDocsByIdAndType(String index, String type, List<String> ids) {
+////		String type = esTemplate.getPersistentEntityFor(
+////				IUtils.getClass(cls)).getIndexType();
+//		IdsQueryBuilder sQry = QueryBuilders.idsQuery(type)
+//				.addIds(IUtils.isNull(ids) ? null : ids.toArray(new String[ids.size()]));
+//		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
+//				.withQuery(sQry)
+//				.withIndices(index)
+//				.build();
+//		List<String> res = esTemplate.query(nsqb, new SearchResultExtractor());
+//		return res;
+//	}
+	
 	/**
 	 * Method to add an index with mappings
 	 * or update the existing index mapping.
@@ -440,5 +460,120 @@ public class SearchManager {
 			logger.info("Res: " + results);
 			return results;
 		}
+	}
+	
+	public List<?> updateWithQuery(String type, String index, String searchKey, String searchValue, String updateKey, String updateValue) {
+		
+		int scrollSize = 5000;
+		int i =0;
+		
+		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
+									                	.setTypes(type)
+									                	.setQuery(QueryBuilders.matchAllQuery())
+									                	.setSize(scrollSize)
+									                	.setFrom(i * scrollSize)
+									            		.execute()
+									            		.actionGet();
+		String docId = null;
+		JSONObject jsonObj = null;
+		for(SearchHit hit : response.getHits()){
+			try {
+				jsonObj = new JSONObject(hit.getSourceAsString());
+				if(jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
+					docId = hit.getId();
+					break;
+				}
+			} catch (JSONException e) {
+				logger.error("Exception : ",e);
+			}
+			logger.info("Document id: "+hit.getId());
+			logger.info("Source Document : "+hit.getSourceAsString());
+        }
+		
+		UpdateResponse updateResponse = null;
+		if(!StringUtils.isBlank(docId)) {
+			try {
+				jsonObj.put(updateKey, updateValue);
+			} catch (JSONException e) {
+				
+			}
+
+			updateResponse = esTemplate.getClient().prepareUpdate(index, type, docId).setDoc(jsonObj.toString(), XContentType.JSON)
+					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).setDocAsUpsert(true).get();
+			
+			logger.info("Record updated in elastic : Response "+response);
+		}
+		
+		response = esTemplate.getClient().prepareSearch(index)
+            	.setTypes(type)
+            	.setQuery(QueryBuilders.matchAllQuery())
+            	.setSize(scrollSize)
+            	.setFrom(i * scrollSize)
+        		.execute()
+        		.actionGet();
+		
+		List<?> results = new SearchResultExtractor().extract(response);
+		return results;
+	}
+	
+	public List<?> deleteWithQuery(String type, String index, String searchKey, String searchValue) throws InterruptedException, ExecutionException {
+		
+		int scrollSize = 5000;
+		int i =0;
+		
+		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
+									                	.setTypes(type)
+									                	.setQuery(QueryBuilders.matchAllQuery())
+									                	.setSize(scrollSize)
+									                	.setFrom(i * scrollSize)
+									            		.execute()
+									            		.actionGet();
+		String docId = null;
+		JSONObject jsonObj = null;
+		for(SearchHit hit : response.getHits()){
+			try {
+				jsonObj = new JSONObject(hit.getSourceAsString());
+				if(jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
+					docId = hit.getId();
+					break;
+				}
+			} catch (JSONException e) {
+				logger.error("Exception : ",e);
+			}
+			logger.info("Document id: "+hit.getId());
+			logger.info("Source Document : "+hit.getSourceAsString());
+        }
+		
+		DeleteResponse delResponse = esTemplate.getClient().prepareDelete(index, type, docId)
+				.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+				.execute().get();
+		
+//		List<?> results = search("alert", null, null, 0, scrollSize);
+		response = esTemplate.getClient().prepareSearch(index)
+            	.setTypes(type)
+            	.setQuery(QueryBuilders.matchAllQuery())
+            	.setSize(scrollSize)
+            	.setFrom(i * scrollSize)
+        		.execute()
+        		.actionGet();
+		
+		List<?> results = new SearchResultExtractor().extract(response);
+		return results;
+	}
+	
+	public Long getTotalRecords(String type, String index) {
+		int scrollSize = 5000;
+		int i =0;
+		
+		SearchResponse response = esTemplate.getClient().prepareSearch(index)
+            	.setTypes(type)
+            	.setQuery(QueryBuilders.matchAllQuery())
+            	.setSize(scrollSize)
+            	.setFrom(i * scrollSize)
+        		.execute()
+        		.actionGet();
+		logger.debug("Total records : "+response.getHits().getTotalHits());
+		return response.getHits().getTotalHits();
+		
 	}
 }
