@@ -3,12 +3,17 @@
  */
 package com.synectiks.search.manager;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jettison.json.JSONException;
@@ -79,7 +84,69 @@ public class SearchManager {
 	@SuppressWarnings("rawtypes")
 	public Map gettMapping(String cls) {
 		Class<?> clazz = IUtils.getClass(cls);
-		return esTemplate.getMapping(clazz);
+		if (esTemplate.indexExists(clazz)) {
+			logger.info("Elastic Index exists");
+			return esTemplate.getMapping(clazz);
+		} else {
+			logger.info("Creating model mapping");
+			return getAllFieldsMapping(clazz);
+		}
+	}
+
+	/**
+	 * Method to get all class fields list from a class including super class fields.
+	 * @param clazz
+	 * @return
+	 */
+	private Map<String, Object> getAllFieldsMapping(Class<?> clazz) {
+		List<Field> list = getAllFields(com.synectiks.commons.entities.SSMState.class);
+		Map<String, Object> pMap = new HashMap<>();
+		List<Map<String, Object>> props = new ArrayList<>();
+		for (Field fld : list) {
+			props.add(addField(fld.getName(), fld.getType()));
+		}
+		pMap.put("properties", props);
+		return pMap;
+	}
+
+	/**
+	 * Method to get list of fields from class using reflection.
+	 * @param clazz
+	 * @return
+	 */
+	private List<Field> getAllFields(Class<?> clazz) {
+		if (clazz == null) {
+			return Collections.emptyList();
+		}
+
+		List<Field> result = new ArrayList<>(getAllFields(clazz.getSuperclass()));
+		List<Field> filteredFields = Arrays.stream(clazz.getDeclaredFields())
+				.filter(f -> (Modifier.isPublic(f.getModifiers())
+						|| Modifier.isProtected(f.getModifiers())
+						|| Modifier.isPrivate(f.getModifiers()))
+						&& !Modifier.isStatic(f.getModifiers()))
+				.collect(Collectors.toList());
+		result.addAll(filteredFields);
+		return result;
+	}
+
+	/**
+	 * Method to add a field details into string.
+	 * @param name
+	 * @param clz
+	 * @return
+	 */
+	private Map<String, Object> addField(String name, Class<?> clz) {
+		Map<String, Object> map = new HashMap<>();
+		Map<String, Object> fmap = new HashMap<>();
+		String tp = clz.getSimpleName();
+		fmap.put("type", tp);
+		if (Date.class.getSimpleName().equals(tp)) {
+			fmap.put("ignore_malformed", true);
+			fmap.put("format", IConsts.DEF_DATE_FORMAT);
+		}
+		map.put(name, fmap);
+		return map;
 	}
 
 	/**
@@ -143,30 +210,8 @@ public class SearchManager {
 						IUtils.getClass(cls)).getIndexName())
 				.build();
 		List<String> res = esTemplate.query(nsqb, new SearchResultExtractor());
-		/*
-		SearchResponse sres = searchTemplate.getClient().prepareSearch(
-				searchTemplate.getPersistentEntityFor(
-						IUtils.getClass(cls)).getIndexName())
-				.setQuery(sQry)
-				.execute()
-				.actionGet();
-		List<String> res = new SearchResultExtractor().extract(sres);
-		 */
 		return res;
 	}
-
-//	public List<String> getDocsByIdAndType(String index, String type, List<String> ids) {
-////		String type = esTemplate.getPersistentEntityFor(
-////				IUtils.getClass(cls)).getIndexType();
-//		IdsQueryBuilder sQry = QueryBuilders.idsQuery(type)
-//				.addIds(IUtils.isNull(ids) ? null : ids.toArray(new String[ids.size()]));
-//		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
-//				.withQuery(sQry)
-//				.withIndices(index)
-//				.build();
-//		List<String> res = esTemplate.query(nsqb, new SearchResultExtractor());
-//		return res;
-//	}
 	
 	/**
 	 * Method to add an index with mappings
