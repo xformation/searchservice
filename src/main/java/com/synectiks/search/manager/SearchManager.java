@@ -511,7 +511,10 @@ public class SearchManager {
 		
 		int scrollSize = 5000;
 		int i =0;
-		
+		Long totalRec = getTotalRecords(type, index);
+		if(totalRec > scrollSize) {
+			scrollSize = totalRec.intValue() + scrollSize;
+		}
 		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
 									                	.setTypes(type)
 									                	.setQuery(QueryBuilders.matchAllQuery())
@@ -554,6 +557,7 @@ public class SearchManager {
             	.setQuery(QueryBuilders.matchAllQuery())
             	.setSize(scrollSize)
             	.setFrom(i * scrollSize)
+//            	.addSort(SortBuilders.fieldSort("name").order(SortOrder.ASC))
         		.execute()
         		.actionGet();
 		
@@ -565,7 +569,10 @@ public class SearchManager {
 		
 		int scrollSize = 5000;
 		int i =0;
-		
+		Long totalRec = getTotalRecords(type, index);
+		if(totalRec > scrollSize) {
+			scrollSize = totalRec.intValue() + scrollSize;
+		}
 		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
 									                	.setTypes(type)
 									                	.setQuery(QueryBuilders.matchAllQuery())
@@ -599,6 +606,7 @@ public class SearchManager {
             	.setQuery(QueryBuilders.matchAllQuery())
             	.setSize(scrollSize)
             	.setFrom(i * scrollSize)
+//            	.addSort(SortBuilders.fieldSort("name").order(SortOrder.ASC))
         		.execute()
         		.actionGet();
 		
@@ -620,5 +628,54 @@ public class SearchManager {
 		logger.debug("Total records : "+response.getHits().getTotalHits());
 		return response.getHits().getTotalHits();
 		
+	}
+	
+	public JSONObject searchWithQuery(String type, String index, String searchKey, String searchValue) {
+		int scrollSize = 5000;
+		int i = 0;
+		Long totalRec = getTotalRecords(type, index);
+		if(totalRec > scrollSize) {
+			scrollSize = totalRec.intValue() + scrollSize;
+		}
+		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
+									                	.setTypes(type)
+									                	.setQuery(QueryBuilders.matchAllQuery())
+									                	.setSize(scrollSize)
+									                	.setFrom(i * scrollSize)
+									            		.execute()
+									            		.actionGet();
+		JSONObject jsonObj = null;
+		for(SearchHit hit : response.getHits()){
+			try {
+				jsonObj = new JSONObject(hit.getSourceAsString());
+				if(jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
+					break;
+				}
+			} catch (JSONException e) {
+				logger.error("Exception : ",e);
+			}
+		}
+		logger.info("Searched document : "+jsonObj);
+		return jsonObj;
+	}
+
+	public List<?> searchWithIndexAndType(String type, String index) {
+		int scrollSize = 5000;
+		int i = 0;
+		Long totalRec = getTotalRecords(type, index);
+		if(totalRec > scrollSize) {
+			scrollSize = totalRec.intValue() + scrollSize;
+		}
+		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
+									                	.setTypes(type)
+									                	.setQuery(QueryBuilders.matchAllQuery())
+									                	.setSize(scrollSize)
+									                	.setFrom(i * scrollSize)
+									            		.execute()
+									            		.actionGet();
+
+		List<?> results = new SearchResultExtractor().extract(response);
+		logger.info("Searched document : "+results.size());
+		return results;
 	}
 }

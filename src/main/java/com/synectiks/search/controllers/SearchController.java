@@ -434,4 +434,37 @@ public class SearchController {
 		}
 		return new ResponseEntity<>(total, HttpStatus.OK);
 	}
+	
+	@RequestMapping(path = "/searchWithQuery", method = RequestMethod.GET)
+	public ResponseEntity<Object> searchWithQuery(@RequestBody ObjectNode obj){
+		logger.info("Searching specific record in elastic. "+obj.get("searchKey").asText()+" : "+obj.get("searchValue").asText());
+		JSONObject searchResults = null;	
+		try {
+			String type = obj.get("type").asText();
+			String index = obj.get("index").asText();
+			String searchKey = obj.get("searchKey").asText();
+			String searchValue =obj.get("searchValue").asText();
+			searchResults = searchManger.searchWithQuery(type, index, searchKey, searchValue);
+		} catch (Exception ex) {
+			logger.error("Exeption in searchWithQuery: ", ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex), HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(searchResults, HttpStatus.OK);
+	}
+	
+	@RequestMapping(path = "/searchWithIndexAndType", method = RequestMethod.GET)
+	public ResponseEntity<Object> searchWithIndexAndType(@RequestBody ObjectNode obj){
+		logger.info("Getting all records from elastic");
+		List<?> searchResults = null;	
+		try {
+			String type = obj.get("type").asText();
+			String index = obj.get("index").asText();
+			searchResults = searchManger.searchWithIndexAndType(type, index);
+		} catch (Exception ex) {
+			logger.error("Exeption in searchWithIndexAndType: ", ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex), HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(searchResults, HttpStatus.OK);
+	}
+	
 }
