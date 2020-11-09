@@ -617,7 +617,9 @@ public class SearchManager {
 	public Long getTotalRecords(String type, String index) {
 		int scrollSize = 5000;
 		int i =0;
-		
+		if(!isIndexExists(index)) {
+			return 0L;
+		}
 		SearchResponse response = esTemplate.getClient().prepareSearch(index)
             	.setTypes(type)
             	.setQuery(QueryBuilders.matchAllQuery())
@@ -631,6 +633,10 @@ public class SearchManager {
 	}
 	
 	public JSONObject searchWithQuery(String type, String index, String searchKey, String searchValue) {
+		if(!isIndexExists(index)) {
+			logger.warn("Index : "+index+", not exists. Returning null object");
+			return null;
+		}
 		int scrollSize = 5000;
 		int i = 0;
 		Long totalRec = getTotalRecords(type, index);
@@ -660,6 +666,10 @@ public class SearchManager {
 	}
 
 	public List<?> searchWithIndexAndType(String type, String index) {
+		if(!isIndexExists(index)) {
+			logger.warn("Index : "+index+", not exists. Returning empty list");
+			return Collections.emptyList();
+		}
 		int scrollSize = 5000;
 		int i = 0;
 		Long totalRec = getTotalRecords(type, index);
@@ -677,5 +687,23 @@ public class SearchManager {
 		List<?> results = new SearchResultExtractor().extract(response);
 		logger.info("Searched document : "+results.size());
 		return results;
+	}
+	
+	private boolean isIndexExists(String index) {
+		boolean isIndexExists = false;
+		try {
+			GetIndexResponse indexes = esTemplate.getClient().admin().indices()
+					.getIndex(new GetIndexRequest()).get();
+			
+			for(String s: indexes.getIndices()) {
+				if(s.equalsIgnoreCase(index)) {
+					isIndexExists = true;
+					break;
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Exception in checking index exists : "+e.getMessage());
+		}
+		return isIndexExists;
 	}
 }
