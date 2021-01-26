@@ -5,11 +5,16 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Utility class to find all Classes from a package.
  * @author Rajesh Upadhyay
  */
 public class ClassFinder {
+
+	private static final Logger logger = LoggerFactory.getLogger(ClassFinder.class);
 
 	private static final char PKG_SEPARATOR = '.';
 	private static final char DIR_SEPARATOR = '/';
@@ -32,14 +37,18 @@ public class ClassFinder {
 		String scannedPath = scannedPackage.replace(PKG_SEPARATOR, DIR_SEPARATOR);
 		URL scannedUrl = Thread.currentThread().getContextClassLoader()
 				.getResource(scannedPath);
+		logger.info("scannedUrl: " + scannedUrl);
 		if (scannedUrl == null) {
 			throw new IllegalArgumentException(
 					String.format(ERROR, scannedPath, scannedPackage));
 		}
+		logger.info("scannedUrl files: " + scannedUrl.getFile());
 		File scannedDir = new File(scannedUrl.getFile());
 		List<Class<?>> classes = new ArrayList<Class<?>>();
-		for (File file : scannedDir.listFiles()) {
-			classes.addAll(find(file, scannedPackage));
+		if (scannedDir != null) {
+			for (File file : scannedDir.listFiles()) {
+				classes.addAll(find(file, scannedPackage));
+			}
 		}
 		return classes;
 	}
