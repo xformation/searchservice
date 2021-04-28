@@ -235,6 +235,20 @@ public class SearchManager {
 	}
 
 	/**
+	 * Method to create an index with the given index name.
+	 * It creates a new index if index does not exists. 
+	 * @param indexName
+	 * @return true only if index created successfully
+	 */
+	public boolean createIndex(String indexName) {
+		boolean created = false;
+		if (!esTemplate.indexExists(indexName)) {
+			created = esTemplate.createIndex(indexName);
+		}
+		return created;
+	}
+	
+	/**
 	 * Method to search for <b>q</b> string in the
 	 *  <b>cls</b> class's <b>fields</b>
 	 * @param q search string
