@@ -38,7 +38,7 @@ import com.synectiks.search.utils.IESUtils;
 @RestController
 @RequestMapping(path = IApiController.API_PATH
 		+ IApiController.URL_SEARCH, method = RequestMethod.POST)
-@CrossOrigin
+@CrossOrigin( origins = "*")
 public class SearchController {
 
 	private static final Logger logger = LoggerFactory
