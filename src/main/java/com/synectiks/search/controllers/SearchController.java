@@ -3,6 +3,7 @@
  */
 package com.synectiks.search.controllers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -278,8 +279,8 @@ public class SearchController {
 					required = false, defaultValue = "0") int pageSize) {
 		List<?> searchResults = null;
 		try {
-				// Search in specified fields
-				searchResults = searchManger.search(filters, cls, pageNo, pageSize);
+			// Search in specified fields
+			searchResults = searchManger.search(filters, cls, pageNo, pageSize);
 		} catch (Exception ex) {
 			logger.error(ex.getMessage(), ex);
 			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
@@ -375,9 +376,24 @@ public class SearchController {
 		try {
 			logger.info("Event[ cls = " +
 					cls + ", type: " + eventType + ", entity: " + entity + "]");
-			ESEvent event = IESUtils.createEvent(cls, eventType, entity);
-			logger.info("fire: " + event);
-			res = receiver.handleEvent(event);
+			if (!IUtils.isNullOrEmpty(entity)) {
+				if (entity.trim().startsWith("[")) {
+					List<String> lst = new ArrayList<>();
+					String[] arr = IUtils.getArrayFromJsonString(entity);
+					for (String obj : arr) {
+						ESEvent event = IESUtils.createEvent(cls, eventType, obj);
+						logger.info("fire: " + event);
+						lst.add(receiver.handleEvent(event));
+					}
+					res = lst;
+				} else {
+					ESEvent event = IESUtils.createEvent(cls, eventType, entity);
+					logger.info("fire: " + event);
+					res = receiver.handleEvent(event);
+				}
+			} else {
+				throw new Exception("Entity object is null or empty!");
+			}
 		} catch (Throwable ex) {
 			logger.error(ex.getMessage(), ex);
 			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
