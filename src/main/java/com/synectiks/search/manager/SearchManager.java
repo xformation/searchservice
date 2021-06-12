@@ -20,7 +20,6 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
-import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -65,9 +64,9 @@ import com.synectiks.search.utils.IESUtils;
 @Component
 public class SearchManager {
 
-	private static final Logger logger = LoggerFactory
-			.getLogger(SearchManager.class);
+	private static final Logger logger = LoggerFactory.getLogger(SearchManager.class);
 	private static final String ENTITY_PKG = "com.synectiks.cms.entities";
+	private static final int SCROLL_SIZE = 5000;
 
 	@Autowired
 	private ElasticsearchTemplate esTemplate;
@@ -94,12 +93,13 @@ public class SearchManager {
 	}
 
 	/**
-	 * Method to get all class fields list from a class including super class fields.
+	 * Method to get all class fields list from a class including super class
+	 * fields.
 	 * @param clazz
 	 * @return
 	 */
 	private Map<String, Object> getAllFieldsMapping(Class<?> clazz) {
-		List<Field> list = getAllFields(com.synectiks.commons.entities.SSMState.class);
+		List<Field> list = getAllFields(clazz);
 		Map<String, Object> pMap = new HashMap<>();
 		List<Map<String, Object>> props = new ArrayList<>();
 		for (Field fld : list) {
@@ -118,7 +118,6 @@ public class SearchManager {
 		if (clazz == null) {
 			return Collections.emptyList();
 		}
-
 		List<Field> result = new ArrayList<>(getAllFields(clazz.getSuperclass()));
 		List<Field> filteredFields = Arrays.stream(clazz.getDeclaredFields())
 				.filter(f -> (Modifier.isPublic(f.getModifiers())
@@ -200,30 +199,29 @@ public class SearchManager {
 	 * @return
 	 */
 	public List<String> getDocsById(String cls, List<String> ids) {
-		String type = esTemplate.getPersistentEntityFor(
-				IUtils.getClass(cls)).getIndexType();
+		String type = esTemplate.getPersistentEntityFor(IUtils.getClass(cls))
+				.getIndexType();
 		IdsQueryBuilder sQry = QueryBuilders.idsQuery(type)
 				.addIds(IUtils.isNull(ids) ? null : ids.toArray(new String[ids.size()]));
 		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
-				.withQuery(sQry)
-				.withIndices(esTemplate.getPersistentEntityFor(
-						IUtils.getClass(cls)).getIndexName())
+				.withQuery(sQry).withIndices(esTemplate
+						.getPersistentEntityFor(IUtils.getClass(cls)).getIndexName())
 				.build();
 		List<String> res = esTemplate.query(nsqb, new SearchResultExtractor());
 		return res;
 	}
-	
+
 	/**
-	 * Method to add an index with mappings
-	 * or update the existing index mapping.
+	 * Method to add an index with mappings or update the existing index
+	 * mapping.
 	 * @param cls Entity class
 	 * @param mappings string mapping json
 	 * @param isUpdate set true to update existing mapping.
 	 * @return true only if mapping updated successfully;
 	 */
 	public boolean putMapping(String cls, String mappings, boolean isUpdate) {
-		Class<?> clazz = IUtils.getClass(cls);
 		boolean created = false;
+		Class<?> clazz = IUtils.getClass(cls);
 		if (!esTemplate.indexExists(clazz)) {
 			created = esTemplate.createIndex(clazz);
 		}
@@ -235,8 +233,8 @@ public class SearchManager {
 	}
 
 	/**
-	 * Method to create an index with the given index name.
-	 * It creates a new index if index does not exists. 
+	 * Method to create an index with the given index name. It creates a new
+	 * index if index does not exists.
 	 * @param indexName
 	 * @return true only if index created successfully
 	 */
@@ -247,10 +245,10 @@ public class SearchManager {
 		}
 		return created;
 	}
-	
+
 	/**
-	 * Method to search for <b>q</b> string in the
-	 *  <b>cls</b> class's <b>fields</b>
+	 * Method to search for <b>q</b> string in the <b>cls</b> class's
+	 * <b>fields</b>
 	 * @param q search string
 	 * @param cls fully qualified name of entity class
 	 * @param fields comma separated list of field name of entity class
@@ -258,14 +256,9 @@ public class SearchManager {
 	 * @param size
 	 * @return list of entity objects which match query criteria
 	 */
-	public List<?> search(String q,
-			String cls, String fields, int page, int size) {
-		SearchQuery sQry = new StringQueryBuilder(q)
-				.withClass(cls)
-				.withFields(fields)
-				.withPageNo(page)
-				.withPageSize(size)
-				.build();
+	public List<?> search(String q, String cls, String fields, int page, int size) {
+		SearchQuery sQry = new StringQueryBuilder(q).withClass(cls).withFields(fields)
+				.withPageNo(page).withPageSize(size).build();
 		// Search the query string
 		List<?> lst = null;
 		if (!IUtils.isNull(cls)) {
@@ -279,32 +272,31 @@ public class SearchManager {
 	/**
 	 * Method to execute elastic search query string in json format.
 	 * @param elsQuery
-	 * @param cls 
+	 * @param cls
 	 * @param pageNo
 	 * @param pageSize
 	 * @return
 	 */
 	public SearchResponse elsSearch(String elsQuery, String cls, int pageNo,
 			int pageSize) {
-//		return esTemplate.getClient().prepareSearch(
-//				esTemplate.getPersistentEntityFor(IUtils.getClass(cls)).getIndexName())
-//				.setQuery(QueryBuilders.wrapperQuery(elsQuery))
-//				.setSize(pageSize)
-//				.setFrom(pageNo * pageSize)
-//				.execute()
-//				.actionGet();
-		
+		// return esTemplate.getClient().prepareSearch(
+		// esTemplate.getPersistentEntityFor(IUtils.getClass(cls)).getIndexName())
+		// .setQuery(QueryBuilders.wrapperQuery(elsQuery))
+		// .setSize(pageSize)
+		// .setFrom(pageNo * pageSize)
+		// .execute()
+		// .actionGet();
+
 		// Following code run only elastic below 5.0
 		PageRequest pageReq = IESUtils.getPageRequest(pageNo, pageSize);
 		// Finally create a bool query builder with query type
 		elsQuery = IESUtils.getElsQuery(elsQuery);
 		WrapperQueryBuilder wqb = QueryBuilders.wrapperQuery(elsQuery);
 		NativeSearchQuery nsqb = new NativeSearchQueryBuilder()
-				//.withTypes(cls)
-				.withIndices(esTemplate.getPersistentEntityFor(
-						IUtils.getClass(cls)).getIndexName())
-				.withQuery(wqb)
-				.withPageable(pageReq).build();
+				// .withTypes(cls)
+				.withIndices(esTemplate.getPersistentEntityFor(IUtils.getClass(cls))
+						.getIndexName())
+				.withQuery(wqb).withPageable(pageReq).build();
 		return esTemplate.query(nsqb, new ResultsExtractor<SearchResponse>() {
 			@Override
 			public SearchResponse extract(SearchResponse response) {
@@ -352,8 +344,7 @@ public class SearchManager {
 	 * @param aggre Aggregator object
 	 * @return count of Entity class instances.
 	 */
-	public Map<String, Object> aggreCounts(
-			String json, String cls, Aggregator aggre) {
+	public Map<String, Object> aggreCounts(String json, String cls, Aggregator aggre) {
 
 		logger.info("Cls: " + cls + ", filterJson: " + json + ", aggre: " + aggre);
 		SearchQuery sQry = FiltersQueryBuilder.create(cls, json, 0, 0)
@@ -372,8 +363,7 @@ public class SearchManager {
 	 * @param size
 	 * @return
 	 */
-	private List<?> executeQuery(
-			SearchQuery sQry, Class<?> cls, int page, int size) {
+	private List<?> executeQuery(SearchQuery sQry, Class<?> cls, int page, int size) {
 		logger.info("Query: " + sQry.getQuery());
 		logger.info("Filters: " + sQry.getFilter());
 		if (!IUtils.isNull(cls)) {
@@ -394,18 +384,16 @@ public class SearchManager {
 	 * @param size
 	 * @return
 	 */
-	private List<?> getScrollResults(
-			SearchQuery sQry, Class<?> cls, int page, int size) {
+	private List<?> getScrollResults(SearchQuery sQry, Class<?> cls, int page, int size) {
 
 		List<Object> lst = null;
 		if (!IUtils.isNull(cls) && !IUtils.isNull(sQry)) {
 			List<Object> pages = new ArrayList<>();
-			Page<?> scroll = esTemplate.startScroll(
-					IConsts.ES_SCROLL_TIMEOUT, sQry, cls);
+			Page<?> scroll = esTemplate.startScroll(IConsts.ES_SCROLL_TIMEOUT, sQry, cls);
 			String scrollId = ((ScrolledPage<?>) scroll).getScrollId();
 			while (true) {
-				Page<?> pg = esTemplate.continueScroll(
-						scrollId, IConsts.ES_SCROLL_TIMEOUT, cls);
+				Page<?> pg = esTemplate.continueScroll(scrollId,
+						IConsts.ES_SCROLL_TIMEOUT, cls);
 				if (pg.hasContent()) {
 					pages.addAll(pg.getContent());
 				} else {
@@ -435,8 +423,7 @@ public class SearchManager {
 	 * Elastic search response parser class to create a list of json objects
 	 * @author Rajesh Upadhyay
 	 */
-	private static class SearchResultExtractor implements
-			ResultsExtractor<List<String>> {
+	private static class SearchResultExtractor implements ResultsExtractor<List<String>> {
 
 		@Override
 		public List<String> extract(SearchResponse response) {
@@ -454,8 +441,8 @@ public class SearchManager {
 	}
 
 	/**
-	 * Elastic search response parser class to create
-	 * a list from aggregation results.
+	 * Elastic search response parser class to create a list from aggregation
+	 * results.
 	 * @author Rajesh Upadhyay
 	 */
 	private static class AggregationResultExtractor
@@ -488,14 +475,14 @@ public class SearchManager {
 						for (Bucket b : buckets) {
 							String key = b.getKeyAsString();
 							if (!IUtils.isNullOrEmpty(aggregator.getFormat())) {
-								key = IUtils
-										.getFormatedDateFromLongString(
-												key, aggregator.getFormat(), aggregator.getLocale());
+								key = IUtils.getFormatedDateFromLongString(key,
+										aggregator.getFormat(), aggregator.getLocale());
 							}
 							results.put(key, b.getDocCount());
 						}
 					} else if (aggre instanceof SingleValue) {
-						results.put(aggregator.getAggreKey(), ((SingleValue) aggre).getValueAsString());
+						results.put(aggregator.getAggreKey(),
+								((SingleValue) aggre).getValueAsString());
 					} else if (aggre instanceof Terms) {
 						Terms terms = (Terms) aggre;
 						for (Terms.Bucket entry : terms.getBuckets()) {
@@ -511,7 +498,8 @@ public class SearchManager {
 						results.put(aggregator.getAggreKey(), aggre);
 					}
 				} else {
-					logger.info("No aggregation found for key: " + aggregator.getAggreKey());
+					logger.info(
+							"No aggregation found for key: " + aggregator.getAggreKey());
 				}
 			} else {
 				logger.info("No aggregations found in response");
@@ -520,203 +508,230 @@ public class SearchManager {
 			return results;
 		}
 	}
-	
-	public List<?> updateWithQuery(String type, String index, String searchKey, String searchValue, String updateKey, String updateValue) {
-		
+
+	/**
+	 * Method to update entities by query
+	 * @param type
+	 * @param index
+	 * @param searchKey
+	 * @param searchValue
+	 * @param updateKey
+	 * @param updateValue
+	 * @return
+	 */
+	public List<?> updateWithQuery(String type, String index, String searchKey,
+			String searchValue, String updateKey, String updateValue) {
+
 		int scrollSize = 5000;
-		int i =0;
+		int i = 0;
 		Long totalRec = getTotalRecords(type, index);
-		if(totalRec > scrollSize) {
+		if (totalRec > scrollSize) {
 			scrollSize = totalRec.intValue() + scrollSize;
 		}
-		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
-									                	.setTypes(type)
-									                	.setQuery(QueryBuilders.matchAllQuery())
-									                	.setSize(scrollSize)
-									                	.setFrom(i * scrollSize)
-									            		.execute()
-									            		.actionGet();
+		SearchResponse response = esTemplate.getClient().prepareSearch(index)
+				.setTypes(type).setQuery(QueryBuilders.matchAllQuery())
+				.setSize(scrollSize).setFrom(i * scrollSize).execute().actionGet();
 		String docId = null;
 		JSONObject jsonObj = null;
-		for(SearchHit hit : response.getHits()){
+		for (SearchHit hit : response.getHits()) {
 			try {
 				jsonObj = new JSONObject(hit.getSourceAsString());
-				if(jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
+				if (jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
 					docId = hit.getId();
 					break;
 				}
 			} catch (JSONException e) {
-				logger.error("Exception : ",e);
+				logger.error("Exception : ", e);
 			}
-			logger.info("Document id: "+hit.getId());
-			logger.info("Source Document : "+hit.getSourceAsString());
-        }
-		
-		UpdateResponse updateResponse = null;
-		if(!StringUtils.isBlank(docId)) {
+			logger.info("Document id: " + hit.getId());
+			logger.info("Source Document : " + hit.getSourceAsString());
+		}
+
+		if (!StringUtils.isBlank(docId)) {
 			try {
 				jsonObj.put(updateKey, updateValue);
 			} catch (JSONException e) {
-				
 			}
-
-			updateResponse = esTemplate.getClient().prepareUpdate(index, type, docId).setDoc(jsonObj.toString(), XContentType.JSON)
-					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).setDocAsUpsert(true).get();
-			
-			logger.info("Record updated in elastic : Response "+response);
+			UpdateResponse updateResponse = esTemplate.getClient()
+					.prepareUpdate(index, type, docId)
+					.setDoc(jsonObj.toString(), XContentType.JSON)
+					.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+					.setDocAsUpsert(true).get();
+			logger.info("Record updated in elastic : Response " + updateResponse);
 		}
-		
-		response = esTemplate.getClient().prepareSearch(index)
-            	.setTypes(type)
-            	.setQuery(QueryBuilders.matchAllQuery())
-            	.setSize(scrollSize)
-            	.setFrom(i * scrollSize)
-//            	.addSort(SortBuilders.fieldSort("name").order(SortOrder.ASC))
-        		.execute()
-        		.actionGet();
-		
+
+		response = esTemplate.getClient().prepareSearch(index).setTypes(type)
+				.setQuery(QueryBuilders.matchAllQuery()).setSize(scrollSize)
+				.setFrom(i * scrollSize).execute().actionGet();
+
 		List<?> results = new SearchResultExtractor().extract(response);
 		return results;
 	}
-	
-	public List<?> deleteWithQuery(String type, String index, String searchKey, String searchValue) throws InterruptedException, ExecutionException {
-		
-		int scrollSize = 5000;
-		int i =0;
+
+	/**
+	 * Method to delete document by query
+	 * @param type
+	 * @param index
+	 * @param searchKey
+	 * @param searchValue
+	 * @return
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	public List<?> deleteWithQuery(String type, String index, String searchKey,
+			String searchValue) throws InterruptedException, ExecutionException {
 		Long totalRec = getTotalRecords(type, index);
-		if(totalRec > scrollSize) {
-			scrollSize = totalRec.intValue() + scrollSize;
+		if (!IUtils.isNull(totalRec) && totalRec.intValue() > SCROLL_SIZE) {
+			totalRec = totalRec.longValue() + SCROLL_SIZE;
 		}
-		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
-									                	.setTypes(type)
-									                	.setQuery(QueryBuilders.matchAllQuery())
-									                	.setSize(scrollSize)
-									                	.setFrom(i * scrollSize)
-									            		.execute()
-									            		.actionGet();
+		SearchResponse response = esTemplate.getClient().prepareSearch(index)
+				.setTypes(type).setQuery(QueryBuilders.matchAllQuery())
+				.setSize(totalRec.intValue()).setFrom(0).execute().actionGet();
 		String docId = null;
 		JSONObject jsonObj = null;
-		for(SearchHit hit : response.getHits()){
+		for (SearchHit hit : response.getHits()) {
 			try {
 				jsonObj = new JSONObject(hit.getSourceAsString());
-				if(jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
+				if (jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
 					docId = hit.getId();
 					break;
 				}
 			} catch (JSONException e) {
-				logger.error("Exception : ",e);
+				logger.error("Exception : ", e);
 			}
-			logger.info("Document id: "+hit.getId());
-			logger.info("Source Document : "+hit.getSourceAsString());
-        }
-		
-		DeleteResponse delResponse = esTemplate.getClient().prepareDelete(index, type, docId)
-				.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
-				.execute().get();
-		
-//		List<?> results = search("alert", null, null, 0, scrollSize);
-		response = esTemplate.getClient().prepareSearch(index)
-            	.setTypes(type)
-            	.setQuery(QueryBuilders.matchAllQuery())
-            	.setSize(scrollSize)
-            	.setFrom(i * scrollSize)
-//            	.addSort(SortBuilders.fieldSort("name").order(SortOrder.ASC))
-        		.execute()
-        		.actionGet();
-		
+			logger.info("Document id: " + hit.getId());
+			logger.info("Source Document : " + hit.getSourceAsString());
+		}
+
+		esTemplate.getClient()
+				.prepareDelete(index, type, docId)
+				.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).execute().get();
+
+		response = esTemplate.getClient().prepareSearch(index).setTypes(type)
+				.setQuery(QueryBuilders.matchAllQuery()).setSize(totalRec.intValue())
+				.setFrom(0)
+				.execute().actionGet();
+
 		List<?> results = new SearchResultExtractor().extract(response);
 		return results;
 	}
-	
+
+	/**
+	 * Method to count all documents in an index.
+	 * @param type
+	 * @param index
+	 * @return
+	 */
 	public Long getTotalRecords(String type, String index) {
-		int scrollSize = 5000;
-		int i =0;
-		if(!isIndexExists(index)) {
+		if (!isIndexExists(index)) {
 			return 0L;
 		}
 		SearchResponse response = esTemplate.getClient().prepareSearch(index)
-            	.setTypes(type)
-            	.setQuery(QueryBuilders.matchAllQuery())
-            	.setSize(scrollSize)
-            	.setFrom(i * scrollSize)
-        		.execute()
-        		.actionGet();
-		logger.debug("Total records : "+response.getHits().getTotalHits());
-		return response.getHits().getTotalHits();
-		
+				.setTypes(type).setQuery(QueryBuilders.matchAllQuery())
+				.setSize(0).execute().actionGet();
+		if (!IUtils.isNull(response) && !IUtils.isNull(response.getHits())) {
+			logger.debug("Total records : " + response.getHits().getTotalHits());
+			return response.getHits().getTotalHits();
+		} else {
+			return 0L;
+		}
+
 	}
-	
-	public JSONObject searchWithQuery(String type, String index, String searchKey, String searchValue) {
-		if(!isIndexExists(index)) {
-			logger.warn("Index : "+index+", not exists. Returning null object");
+
+	/**
+	 * Method to search first match document by query
+	 * @param type
+	 * @param index
+	 * @param searchKey
+	 * @param searchValue
+	 * @return
+	 */
+	public JSONObject searchWithQuery(String type, String index, String searchKey,
+			String searchValue) {
+		if (!isIndexExists(index)) {
+			logger.warn("Index : " + index + ", not exists. Returning null object");
 			return null;
 		}
-		int scrollSize = 5000;
-		int i = 0;
 		Long totalRec = getTotalRecords(type, index);
-		if(totalRec > scrollSize) {
-			scrollSize = totalRec.intValue() + scrollSize;
+		if (!IUtils.isNull(totalRec) && totalRec.intValue() > SCROLL_SIZE) {
+			totalRec = totalRec.longValue() + SCROLL_SIZE;
 		}
-		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
-									                	.setTypes(type)
-									                	.setQuery(QueryBuilders.matchAllQuery())
-									                	.setSize(scrollSize)
-									                	.setFrom(i * scrollSize)
-									            		.execute()
-									            		.actionGet();
+		SearchResponse response = esTemplate.getClient().prepareSearch(index)
+				.setTypes(type).setQuery(QueryBuilders.matchAllQuery())
+				.setSize(totalRec.intValue()).setFrom(0).execute().actionGet();
 		JSONObject jsonObj = null;
-		for(SearchHit hit : response.getHits()){
+		for (SearchHit hit : response.getHits()) {
 			try {
 				jsonObj = new JSONObject(hit.getSourceAsString());
-				if(jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
+				if (jsonObj.getString(searchKey).equalsIgnoreCase(searchValue)) {
 					break;
 				}
 			} catch (JSONException e) {
-				logger.error("Exception : ",e);
+				logger.error("Exception : ", e);
 			}
 		}
-		logger.info("Searched document : "+jsonObj);
+		logger.info("Searched document : " + jsonObj);
 		return jsonObj;
 	}
 
+	/**
+	 * Method to list all documents by class
+	 * @param cls
+	 * @return
+	 */
+	public List<?> searchWithClass(String cls) {
+		Class<?> clazz = IUtils.getClass(cls);
+		if (!esTemplate.indexExists(clazz)) {
+			String index = esTemplate.getPersistentEntityFor(clazz).getIndexName();
+			String type = esTemplate.getPersistentEntityFor(clazz).getIndexType();
+			return searchWithIndexAndType(type, index);
+		}
+		return null;
+	}
+
+	/**
+	 * Method to list all documents by index and type
+	 * @param type
+	 * @param index
+	 * @return
+	 */
 	public List<?> searchWithIndexAndType(String type, String index) {
-		if(!isIndexExists(index)) {
-			logger.warn("Index : "+index+", not exists. Returning empty list");
+		if (!isIndexExists(index)) {
+			logger.warn("Index : " + index + ", not exists. Returning empty list");
 			return Collections.emptyList();
 		}
-		int scrollSize = 5000;
-		int i = 0;
 		Long totalRec = getTotalRecords(type, index);
-		if(totalRec > scrollSize) {
-			scrollSize = totalRec.intValue() + scrollSize;
+		if (!IUtils.isNull(totalRec) && totalRec.intValue() > SCROLL_SIZE) {
+			totalRec = totalRec.longValue() + SCROLL_SIZE;
 		}
-		SearchResponse  response = esTemplate.getClient().prepareSearch(index)
-									                	.setTypes(type)
-									                	.setQuery(QueryBuilders.matchAllQuery())
-									                	.setSize(scrollSize)
-									                	.setFrom(i * scrollSize)
-									            		.execute()
-									            		.actionGet();
+		SearchResponse response = esTemplate.getClient().prepareSearch(index)
+				.setTypes(type).setQuery(QueryBuilders.matchAllQuery())
+				.setSize(totalRec.intValue()).setFrom(0).execute().actionGet();
 
 		List<?> results = new SearchResultExtractor().extract(response);
-		logger.info("Searched document : "+results.size());
+		logger.info("Searched document : " + results.size());
 		return results;
 	}
-	
+
+	/**
+	 * Method to check if a index exists.
+	 * @param index
+	 * @return
+	 */
 	private boolean isIndexExists(String index) {
 		boolean isIndexExists = false;
 		try {
 			GetIndexResponse indexes = esTemplate.getClient().admin().indices()
 					.getIndex(new GetIndexRequest()).get();
-			
-			for(String s: indexes.getIndices()) {
-				if(s.equalsIgnoreCase(index)) {
+
+			for (String s : indexes.getIndices()) {
+				if (s.equals(index)) {
 					isIndexExists = true;
 					break;
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Exception in checking index exists : "+e.getMessage());
+			logger.error("Exception in checking index exists : " + e.getMessage());
 		}
 		return isIndexExists;
 	}

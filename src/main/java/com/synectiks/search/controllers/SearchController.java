@@ -59,7 +59,7 @@ public class SearchController {
 	@RequestMapping(path = "/getDocs", method = RequestMethod.GET)
 	public ResponseEntity<Object> getDocsById(
 			@RequestParam(value = "cls") String cls,
-			@RequestParam List<String> ids) {
+			@RequestParam(value = "ids", required = false) List<String> ids) {
 
 		logger.info(cls + ", " + ids);
 		List<String> docs = null;
@@ -404,16 +404,17 @@ public class SearchController {
 	}
 
 	@RequestMapping(path = "/updateWithQuery", method = RequestMethod.POST)
-	public ResponseEntity<Object> updateWithQuery(@RequestBody ObjectNode obj){
-		List<?> searchResults = null;	
+	public ResponseEntity<Object> updateWithQuery(@RequestBody ObjectNode obj) {
+		List<?> searchResults = null;
 		try {
 			String type = obj.get("type").asText();
 			String index = obj.get("index").asText();
 			String searchKey = obj.get("searchKey").asText();
-			String searchValue =obj.get("searchValue").asText();
+			String searchValue = obj.get("searchValue").asText();
 			String updateKey = obj.get("updateKey").asText();
 			String updateValue = obj.get("updateValue").asText();
-			searchResults = searchManger.updateWithQuery(type, index, searchKey, searchValue, updateKey, updateValue);
+			searchResults = searchManger.updateWithQuery(type, index, searchKey,
+					searchValue, updateKey, updateValue);
 		} catch (Exception ex) {
 			logger.error("Exeption in updateWithQuery: ", ex);
 			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
@@ -421,16 +422,17 @@ public class SearchController {
 		}
 		return new ResponseEntity<>(searchResults, HttpStatus.OK);
 	}
-	
+
 	@RequestMapping(path = "/deleteWithQuery", method = RequestMethod.POST)
-	public ResponseEntity<Object> deleteWithQuery(@RequestBody ObjectNode obj){
-		List<?> searchResults = null;	
+	public ResponseEntity<Object> deleteWithQuery(@RequestBody ObjectNode obj) {
+		List<?> searchResults = null;
 		try {
 			String type = obj.get("type").asText();
 			String index = obj.get("index").asText();
 			String searchKey = obj.get("searchKey").asText();
-			String searchValue =obj.get("searchValue").asText();
-			searchResults = searchManger.deleteWithQuery(type, index, searchKey, searchValue);
+			String searchValue = obj.get("searchValue").asText();
+			searchResults = searchManger.deleteWithQuery(type, index, searchKey,
+					searchValue);
 		} catch (Exception ex) {
 			logger.error("Exeption in deleteWithQuery: ", ex);
 			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
@@ -438,49 +440,61 @@ public class SearchController {
 		}
 		return new ResponseEntity<>(searchResults, HttpStatus.OK);
 	}
-	
+
 	@RequestMapping(path = "/totalRecords", method = RequestMethod.GET)
-	public ResponseEntity<Object> totalRecords(@RequestParam(name = "type") String type, @RequestParam(name = "index") String index){
-		Long total = 0L;	
+	public ResponseEntity<Object> totalRecords(
+			@RequestParam(name = "type", required = false, defaultValue = "") String type,
+			@RequestParam(name = "index") String index) {
+		Long total = 0L;
 		try {
 			total = searchManger.getTotalRecords(type, index);
 		} catch (Exception ex) {
 			logger.error("Exeption in totalRecords: ", ex);
-			return new ResponseEntity<>(IUtils.getFailedResponse(ex), HttpStatus.EXPECTATION_FAILED);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.EXPECTATION_FAILED);
 		}
 		return new ResponseEntity<>(total, HttpStatus.OK);
 	}
-	
+
 	@RequestMapping(path = "/searchWithQuery", method = RequestMethod.GET)
 	public ResponseEntity<Object> searchWithQuery(
-			@RequestParam(name = "type") String type, 
+			@RequestParam(name = "type", required = false, defaultValue = "") String type,
 			@RequestParam(name = "index") String index,
-			@RequestParam(name = "searchKey") String searchKey, 
-			@RequestParam(name = "searchValue") String searchValue){
-		logger.info("Searching specific record in elastic. "+searchKey+" : "+searchValue);
-		JSONObject searchResults = null;	
+			@RequestParam(name = "searchKey") String searchKey,
+			@RequestParam(name = "searchValue") String searchValue) {
+		logger.info("Searching specific record in elastic. " + searchKey + " : "
+				+ searchValue);
+		JSONObject searchResults = null;
 		try {
-			searchResults = searchManger.searchWithQuery(type, index, searchKey, searchValue);
+			searchResults = searchManger.searchWithQuery(type, index, searchKey,
+					searchValue);
 		} catch (Exception ex) {
 			logger.error("Exeption in searchWithQuery: ", ex);
-			return new ResponseEntity<>(IUtils.getFailedResponse(ex), HttpStatus.PRECONDITION_FAILED);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
 		}
 		return new ResponseEntity<>(searchResults.toString(), HttpStatus.OK);
 	}
-	
+
 	@RequestMapping(path = "/searchWithIndexAndType", method = RequestMethod.GET)
 	public ResponseEntity<Object> searchWithIndexAndType(
-			@RequestParam(name = "type") String type, 
-			@RequestParam(name = "index") String index){
+			@RequestParam(name = "cls", required = false) String cls,
+			@RequestParam(name = "type", required = false, defaultValue = "") String type,
+			@RequestParam(name = "index", required = false) String index) {
 		logger.info("Getting all records from elastic");
-		List<?> searchResults = null;	
+		List<?> searchResults = null;
 		try {
-			searchResults = searchManger.searchWithIndexAndType(type, index);
+			if (!IUtils.isNull(cls)) {
+				searchResults = searchManger.searchWithClass(cls);
+			} else {
+				searchResults = searchManger.searchWithIndexAndType(type, index);
+			}
 		} catch (Exception ex) {
 			logger.error("Exeption in searchWithIndexAndType: ", ex);
-			return new ResponseEntity<>(IUtils.getFailedResponse(ex), HttpStatus.PRECONDITION_FAILED);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
 		}
 		return new ResponseEntity<>(searchResults, HttpStatus.OK);
 	}
-	
+
 }
