@@ -481,7 +481,7 @@ public class SearchController {
 			@RequestParam(name = "cls", required = false) String cls,
 			@RequestParam(name = "type", required = false, defaultValue = "") String type,
 			@RequestParam(name = "index", required = false) String index) {
-		logger.info("Getting all records from elastic");
+		logger.info("Getting all records from elastic: " + cls + ", " + index + ", " + type);
 		List<?> searchResults = null;
 		try {
 			if (!IUtils.isNull(cls)) {

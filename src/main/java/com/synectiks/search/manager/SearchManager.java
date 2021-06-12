@@ -681,7 +681,7 @@ public class SearchManager {
 	 */
 	public List<?> searchWithClass(String cls) {
 		Class<?> clazz = IUtils.getClass(cls);
-		if (!esTemplate.indexExists(clazz)) {
+		if (esTemplate.indexExists(clazz)) {
 			String index = esTemplate.getPersistentEntityFor(clazz).getIndexName();
 			String type = esTemplate.getPersistentEntityFor(clazz).getIndexType();
 			return searchWithIndexAndType(type, index);
