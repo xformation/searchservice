@@ -44,6 +44,7 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.ResultsExtractor;
 import org.springframework.data.elasticsearch.core.ScrolledPage;
+import org.springframework.data.elasticsearch.core.query.IndexQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQuery;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
@@ -734,5 +735,30 @@ public class SearchManager {
 			logger.error("Exception in checking index exists : " + e.getMessage());
 		}
 		return isIndexExists;
+	}
+
+	/**
+	 * Method to create index if not exists and then save the docs into it.
+	 * @param indx
+	 * @param docs
+	 */
+	public List<String> saveDocs(String indx, List<String> docs) {
+		List<String> res = null;
+		if (!IUtils.isNullOrEmpty(indx)) {
+			if (!isIndexExists(indx)) {
+				this.createIndex(indx);
+				logger.info("New index '" + indx + "' created.");
+			}
+			if (!IUtils.isNull(docs) && docs.size() > 0) {
+				res = new ArrayList<>();
+				for (String doc : docs) {
+					IndexQueryBuilder builder = new IndexQueryBuilder();
+					builder.withIndexName(indx).withObject(IUtils.getJSONObject(doc));
+					res.add(esTemplate.index(builder.build()));
+				}
+				logger.info(docs.size() + " docs saved into index: " + indx);
+			}
+		}
+		return res;
 	}
 }

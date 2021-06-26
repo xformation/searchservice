@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.codehaus.jettison.json.JSONObject;
 import org.elasticsearch.action.search.SearchResponse;
 import org.slf4j.Logger;
@@ -30,7 +32,6 @@ import com.synectiks.search.manager.SearchManager;
 import com.synectiks.search.queries.Aggregator;
 import com.synectiks.search.receiver.SearchESEventReceiver;
 import com.synectiks.search.utils.IESUtils;
-//import org.elasticsearch.client.Client;
 
 /**
  * @author Rajesh
@@ -495,6 +496,36 @@ public class SearchController {
 					HttpStatus.PRECONDITION_FAILED);
 		}
 		return new ResponseEntity<>(searchResults, HttpStatus.OK);
+	}
+
+	/**
+	 * Method to save the documents in the specified index, create if not exists.
+	 * @param req pass the index name in request param 'index_name'
+	 * @param lst
+	 * @return
+	 */
+	@RequestMapping(path = "/saveDocs", method = RequestMethod.POST)
+	public ResponseEntity<Object> saveDocsInIndex(HttpServletRequest req,
+			@RequestBody String lst) {
+		List<String> res = null;
+		String indx = req.getParameter(IConsts.PRM_INDX_NAME);
+		try {
+			if (!IUtils.isNullOrEmpty(indx)) {
+				throw new Exception("Request parameter '"
+						+ IConsts.PRM_INDX_NAME + "' not set.");
+			}
+			if (!IUtils.isNullOrEmpty(lst)) {
+				List<String> docs = IUtils.getListFromJsonString(lst);
+				res = searchManger.saveDocs(indx, docs);
+			} else {
+				throw new Exception("Documents list is null or empty.");
+			}
+		} catch (Exception ex) {
+			logger.error("Exeption in searchWithIndexAndType: ", ex);
+			return new ResponseEntity<>(IUtils.getFailedResponse(ex),
+					HttpStatus.PRECONDITION_FAILED);
+		}
+		return new ResponseEntity<>(res, HttpStatus.OK);
 	}
 
 }
