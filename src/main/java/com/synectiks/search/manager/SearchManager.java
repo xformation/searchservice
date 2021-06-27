@@ -18,8 +18,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -752,9 +755,13 @@ public class SearchManager {
 			if (!IUtils.isNull(docs) && docs.size() > 0) {
 				res = new ArrayList<>();
 				for (String doc : docs) {
-					IndexQueryBuilder builder = new IndexQueryBuilder();
-					builder.withIndexName(indx).withObject(IUtils.getJSONObject(doc));
-					res.add(esTemplate.index(builder.build()));
+//					IndexQueryBuilder builder = new IndexQueryBuilder();
+//					builder.withIndexName(indx).withObject(IUtils.getJSONObject(doc));
+//					res.add(esTemplate.index(builder.build()));
+					IndexRequest req = new IndexRequest(indx, indx);
+					req.source(IUtils.getMapFromJson(IUtils.getJSONObject(doc)));
+					String docId = esTemplate.getClient().index(req).actionGet().getId();
+					res.add(docId);
 				}
 				logger.info(docs.size() + " docs saved into index: " + indx);
 			}

@@ -508,9 +508,9 @@ public class SearchController {
 	public ResponseEntity<Object> saveDocsInIndex(HttpServletRequest req,
 			@RequestBody String lst) {
 		List<String> res = null;
-		String indx = req.getParameter(IConsts.PRM_INDX_NAME);
+		String indx = req.getHeader(IConsts.PRM_INDX_NAME);
 		try {
-			if (!IUtils.isNullOrEmpty(indx)) {
+			if (IUtils.isNullOrEmpty(indx)) {
 				throw new Exception("Request parameter '"
 						+ IConsts.PRM_INDX_NAME + "' not set.");
 			}
